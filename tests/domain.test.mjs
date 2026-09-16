@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import * as data from '../dist/data.js';
 import {translate} from '../dist/i18n.js';
 import {webcrypto} from 'node:crypto';
-const source=(await fs.readFile(new URL('../dist/app.js',import.meta.url),'utf8')).replace(/^import .*;\r?\n/gm,'').replace(/\nrender\(\);\s*$/,'');
+const source=(await fs.readFile(new URL('../dist/app.js',import.meta.url),'utf8')).replace(/^import .*;\r?\n/gm,'').replace(/\n(?:render|boot)\(\);\s*$/,'');
 function harness(role='teacher',id='t1',teacherId='t1'){
 const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
 const ctx=vm.createContext({...data,persist:db=>storage.setItem('science-lab-v1',JSON.stringify(db)),esc:data.escapeHTML,translate,console,crypto:webcrypto,structuredClone,Intl,Date,JSON,URL,Blob,TextEncoder,localStorage:storage,sessionStorage:storage,location:{hash:''},document:{addEventListener(){},querySelector(){return null},querySelectorAll(){return []}},window:{addEventListener(){}},setTimeout(){},clearInterval(){},setInterval(){}});

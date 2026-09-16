@@ -1,7 +1,7 @@
 import {load,persist,uid,today,month,grade,outstanding,attendanceRate,escapeHTML as esc,csv} from './data.js';
 import {translate} from './i18n.js';
 let db=load();
-let session=sessionStorage.getItem('sl-session')===null?{role:'teacher',teacherId:'t1',id:'t1',demo:true}:JSON.parse(sessionStorage.getItem('sl-session')); 
+let session=null; // Only a verified server session or an explicit demo action can enter. 
 let page=location.hash.slice(1)||'dashboard', filter='',batchFilter='all',statusFilter='all',tab='general';
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const t=(s)=>translate(s,db.settings.language),e=(s)=>esc(t(s));
@@ -26,7 +26,7 @@ const batchName=(id)=>id==='all'?t('All batches'):db.batches.find(x=>x.id===id)?
 const studentName=(id)=>db.students.find(x=>x.id===id)?.name||'—';
 const labels={dashboard:'Dashboard',students:'Students',batches:'Batches',attendance:'Attendance',assignments:'Assignments',materials:'Materials',exams:'Exams',quizzes:'Quizzes',routine:'Routine',notices:'Notices',messages:'Messages',calendar:'Calendar',fees:'Fees',analytics:'Analytics',guardians:'Guardians',ai:'AI Studio',settings:'Settings',teachers:'Teachers',plans:'Plans',billing:'Billing',audit:'Audit log'};
 const featureMap={messages:'messages',materials:'materials',quizzes:'quizzes',ai:'ai',fees:'fees',guardians:'guardians'};
-function allowed(p){if(!session)return false;if(isAdmin())return ['dashboard','teachers','plans','billing','notices','audit','settings'].includes(p);if(isStudent()&&['students','batches','analytics','guardians','ai','teachers','plans','billing','audit'].includes(p))return false;return !featureMap[p]||teacher()?.features[featureMap[p]];}
+function allowed(p){if(!session)return false;if(isAdmin())return ['dashboard','teachers','plans','billing','notices','audit','settings'].includes(p);if(!isAdmin()&&['teachers','plans','billing','audit'].includes(p))return false;if(isStudent()&&['students','batches','analytics','guardians','ai','teachers','plans','billing','audit'].includes(p))return false;return !featureMap[p]||teacher()?.features[featureMap[p]];}
 function save(action,entity,id,before=null){db.audit.unshift({id:uid(),teacherId:session?.teacherId,actor:isAdmin()?'Super Admin':me()?.name||'Demo',action,entity,recordId:id,before,created:new Date().toISOString()});try{persist(db);}catch{toast(t('Storage')+' '+(db.settings.language==='bn'?'পূর্ণ। ব্যাকআপ নিন।':'is full. Export a backup.'),true);throw new Error('Local storage full');}}
 function toast(message,error=false){const el=document.createElement('div');el.className='toast';el.textContent=message;if(error)el.style.borderColor='var(--red)';$('#toasts').append(el);setTimeout(()=>el.remove(),4500);}
 function go(p){closeModal();page=p;filter='';batchFilter='all';statusFilter='all';tab=p==='settings'?'general':'';location.hash=p;render();}

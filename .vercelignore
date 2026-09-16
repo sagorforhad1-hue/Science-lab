@@ -1,0 +1,10 @@
+.git
+.vercel
+.env
+.env.*
+node_modules
+dist
+tests
+server.mjs
+Start-Science-Lab.cmd
+*.md

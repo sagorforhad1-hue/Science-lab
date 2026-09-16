@@ -92,3 +92,17 @@ Source পরিবর্তনের পর:
 Browser-এ teacher/admin module navigation, উপস্থিতি save/reload, quiz authoring question addition, student quiz timer/3-of-3 scoring, language toggle এবং 390px mobile layout পরীক্ষা করা হয়েছে। Voice capture ও external services পরীক্ষা করা হয়নি; সেগুলোর জন্য যথাক্রমে device permission ও future API integration লাগবে।
 
 AI/API পরিকল্পনা: API-GUIDE.md।
+
+## Vercel deployment repair (2026-09-16)
+
+Live URL: https://sciencelab-silk.vercel.app
+
+The former Node framework preset treated dist/app.js as a server entry point and failed with `ReferenceError: sessionStorage is not defined`. The project now uses the Other/static preset (`framework: null`), `npm run build`, and output directory `dist`. The corrected version was deployed through the Vercel CLI. Local changes have not been committed or pushed to GitHub.
+
+Static source assets now live in `public/`; edit them there. `build.mjs` copies them to `dist/` and compiles the application. A clean build no longer depends on a pre-existing `dist/` folder. Keep `public/`, the build script, and `vercel.json` together when committing these changes.
+
+`.env.local` has slots for Groq, Firebase Cloud Messaging, and Resend; `.env.example` is the blank shareable template. Existing local credentials are preserved. Firebase requires web-app configuration, a public VAPID key, and server service-account credentials, not just one API key. Environment files are excluded from Git and Vercel source uploads. Never place private keys in `public/` or `dist/`.
+
+The API slots do not yet activate provider calls. The current app remains a browser-local demo. Authenticated server adapters, provider credentials in Vercel environment settings, and backend/database work are separate follow-up work. Saving a value in the local file does not automatically add it to Vercel. No SQL changes were made during this deployment repair.
+
+Validation: clean-folder build test, 15 existing tests, JavaScript syntax checks, and live dashboard rendering.
