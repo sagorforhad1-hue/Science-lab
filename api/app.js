@@ -1,7 +1,9 @@
+import {integrationActions,integrationAction} from '../lib/integration-actions.js';
 import {createClient} from '@supabase/supabase-js';
 import {randomBytes} from 'node:crypto';
+import {assertViewAction} from '../lib/usage.js';
 import {AppError,requireThat,same,blank,profileRecord,active,project,applyOperation,validateAccount,quizStart,quizSubmit} from '../lib/domain.js';
-export const config={maxDuration:30};
+export const config={maxDuration:60};
 const bucket='science-lab-private';
 function settings(){
  const configuredURL=process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,8 +21,14 @@ async function context(req){
  const {admin,url,key}=clients(),token=(req.headers.authorization||'').replace(/^Bearer /,'');
  requireThat(token,'Please log in.',401);
  const {data,error}=await admin.auth.getUser(token);requireThat(!error&&data?.user,'Your session expired. Please log in again.',401);
- const p=check(await admin.from('sl_profiles').select('*').eq('id',data.user.id).maybeSingle());
+ let p=check(await admin.from('sl_profiles').select('*').eq('id',data.user.id).maybeSingle());
  requireThat(p,'This login has not been assigned an app account. Contact your administrator.',403);
+ const viewId=req.headers['x-view-teacher'];
+ if(viewId){
+  assertViewAction(p.role,viewId,new URL(req.url,'http://localhost').searchParams.get('action')||'session');
+  requireThat(p.active&&!p.must_change_password,'Owner account is unavailable.');
+  p=check(await admin.from('sl_profiles').select('*').eq('id',viewId).eq('role','teacher').maybeSingle());requireThat(p,'Teacher not found.',404);
+ }
  const owner=p.role==='admin'?p.id:p.role==='teacher'?p.id:p.teacher_id;
  let profiles;
  if(p.role==='admin')profiles=check(await admin.from('sl_profiles').select('*'));
@@ -29,9 +37,9 @@ async function context(req){
  const ws=check(await admin.from('sl_workspaces').select('*').eq('owner_id',owner).maybeSingle())||{owner_id:owner,version:0,data:{}};
  let platform={};
  if(p.role!=='admin'){const a=check(await admin.from('sl_profiles').select('id').eq('role','admin').maybeSingle());if(a)platform=check(await admin.from('sl_workspaces').select('data').eq('owner_id',a.id).maybeSingle())?.data||{};}
- return {admin,url,key,token,user:data.user,p,profiles,owner,ws,platform,db:Object.assign(blank(),ws.data)};
+ return {admin,url,key,token,user:data.user,p,profiles,owner,ws,platform,viewing:!!viewId,db:Object.assign(blank(),ws.data)};
 }
-function payload(c){return {profile:{id:c.p.id,role:c.p.role,teacherId:c.p.role==='teacher'?c.p.id:c.p.teacher_id,email:c.p.email,mustChangePassword:c.p.must_change_password},db:project(c.p,c.db,c.profiles,c.platform)};}
+function payload(c){return {profile:{id:c.p.id,role:c.p.role,teacherId:c.p.role==='teacher'?c.p.id:c.p.teacher_id,email:c.p.email,mustChangePassword:c.viewing?false:c.p.must_change_password,viewing:c.viewing},db:project(c.p,c.db,c.profiles,c.platform)};}
 async function commit(c){
  const changed=check(await c.admin.from('sl_workspaces').update({data:c.db,version:c.ws.version+1,updated_at:new Date().toISOString()}).eq('owner_id',c.owner).eq('version',c.ws.version).select('version'));
  requireThat(changed.length===1,'Data changed on another device. Refresh and try again.',409);c.ws.version++;
@@ -55,18 +63,24 @@ async function updateProfile(c,op){
  requireThat(after,'Archive or suspend accounts instead of deleting them.',400);
  requireThat(same(profileRecord(target),before),'Account changed. Refresh and try again.',409);
  requireThat(after.id===id&&after.email===target.email,'Login email cannot be edited here.',400);
+ if(c.p.role==='teacher'&&target.role==='student')requireThat(c.p.data.features?.students!==false,'Student management is disabled.');
  const permitted=c.p.role==='admin'&&target.role==='teacher'||c.p.role==='teacher'&&target.role==='student'&&target.teacher_id===c.p.id;
  const self=c.p.id===target.id;
  requireThat(permitted||self,'You cannot change this account.');
  if(self&&!permitted){
-  const allowed=target.role==='teacher'?['name','coaching']:['name','phone'];
+  const allowed=target.role==='teacher'?['name','coaching','photoData','coverData','logoData','subject','bio','leaderboard']:['name','phone','photoData','bio','interests'];
   for(const k of new Set([...Object.keys(before),...Object.keys(after)]))requireThat(same(before[k],after[k])||allowed.includes(k),'You cannot change account permissions.');
  }
  if(target.role==='student'){
+  requireThat(after.aiEnabled===before.aiEnabled,'Only the Super Admin can change student AI permissions.');
   requireThat(after.teacherId===target.teacher_id,'Account ownership cannot change.');
   requireThat(Array.isArray(after.batchIds)&&after.batchIds.every(id=>c.db.batches.some(b=>b.id===id)),'Invalid enrollment.',400);
   requireThat(!c.profiles.some(p=>p.id!==id&&p.role==='student'&&p.data.studentId===after.studentId),'Student ID already exists.',409);
  }
+ for(const k of ['photoData','coverData','logoData','guardianPhotoData'])if(after[k])requireThat(typeof after[k]==='string'&&after[k].length<=180000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(after[k]),'Use a valid image under 130 KB.',400);
+ for(const k of ['bio','interests','subject'])if(after[k]!==undefined)requireThat(typeof after[k]==='string'&&after[k].length<=2000,'Profile text is too long.',400);
+ if(target.role==='teacher'&&after.aiDailyLimit!==undefined)requireThat(Number.isInteger(after.aiDailyLimit)&&after.aiDailyLimit>=0&&after.aiDailyLimit<=500,'AI limit must be 0–500.',400);
+ if(target.role==='teacher'&&after.aiMonthlyLimit!=null)requireThat(Number.isInteger(after.aiMonthlyLimit)&&after.aiMonthlyLimit>=0&&after.aiMonthlyLimit<=15000,'Invalid monthly AI limit.',400);
  if(target.role==='teacher')for(const k of ['studentLimit','batchLimit','storageLimit'])requireThat(Number.isFinite(after[k])&&after[k]>=0,'Invalid account limit.',400);
  const data=structuredClone(after);delete data.id;delete data.email;delete data.teacherId;
  const isActive=!['Suspended','Archived'].includes(data.status);
@@ -75,14 +89,14 @@ async function updateProfile(c,op){
  Object.assign(target,{data,active:isActive});if(self)Object.assign(c.p,target);
 }
 async function createAccount(c,body){
- const role=body.role,record=body.record;validateAccount(c.p,role,record,c.profiles,c.db);
+ const role=body.role,record=body.record;if(c.p.role==='teacher')requireThat(c.p.data.features?.students!==false,'Student management is disabled.');validateAccount(c.p,role,record,c.profiles,c.db);
  const email=record.email.trim().toLowerCase(),password='Lab!'+randomBytes(15).toString('base64url');
  if(role==='teacher')requireThat(c.db.plans.some(p=>p.id===record.plan),'Choose a valid plan.',400);
  const created=await c.admin.auth.admin.createUser({email,password,email_confirm:true});const u=check(created).user;
  const data=structuredClone(record);delete data.id;delete data.teacherId;delete data.email;delete data.password;
  if(role==='teacher'){
   requireThat(c.db.plans.some(p=>p.id===data.plan),'Choose a valid plan.',400);
-  const plan=c.db.plans.find(p=>p.id===data.plan);Object.assign(data,{studentLimit:plan.studentLimit,batchLimit:plan.batchLimit,storageLimit:plan.storageLimit,features:{messages:true,materials:true,quizzes:true,ai:true,fees:true,guardians:true},joined:new Date().toISOString().slice(0,10)});
+  const plan=c.db.plans.find(p=>p.id===data.plan);Object.assign(data,{studentLimit:plan.studentLimit,batchLimit:plan.batchLimit,storageLimit:plan.storageLimit,features:{messages:true,materials:true,quizzes:true,ai:true,fees:true,guardians:true,email:true,push:true,online:true,whatsapp:false,studentAI:false},joined:new Date().toISOString().slice(0,10)});
  }else {data.status='Active';data.joined=new Date().toISOString().slice(0,10);}
  try{
   check(await c.admin.rpc('sl_register_account',{creator_id:c.p.id,new_id:u.id,new_role:role,login_email:email,profile_data:data}));
@@ -97,7 +111,7 @@ export default async function handler(req,res){
   requireThat(['GET','POST'].includes(req.method),'Method not allowed.',405);
   if(action==='config'){requireThat(req.method==='GET','Method not allowed.',405);const {url,key}=settings();return res.status(200).json({url,key});}
   const c=await context(req);
-  if(action==='session')return res.status(200).json(c.p.must_change_password?{profile:payload(c).profile,db:null}:payload(c));
+  if(action==='session')return res.status(200).json(c.p.must_change_password&&!c.viewing?{profile:payload(c).profile,db:null}:payload(c));
   requireThat(req.method==='POST','Method not allowed.',405);const body=bodyOf(req);
   if(action==='password'){
    requireThat(typeof body.password==='string'&&body.password.length>=12&&body.password.length<=128,'Use a password of 12–128 characters.',400);
@@ -105,13 +119,14 @@ export default async function handler(req,res){
    check(await c.admin.auth.admin.updateUserById(c.p.id,{password:body.password}));
    check(await c.admin.from('sl_profiles').update({must_change_password:false}).eq('id',c.p.id));return res.status(200).json({ok:true});
   }
-  requireThat(!c.p.must_change_password,'Change your temporary password first.',403);
+  requireThat(c.viewing||!c.p.must_change_password,'Change your temporary password first.',403);
+  if(integrationActions.has(action))return res.status(200).json(await integrationAction(c,action,body,{check,commit}));
   if(action==='account')return res.status(201).json(await createAccount(c,body));
   if(action==='preferences'){
    const settings=body.settings||{},notifications=body.notifications||{};
    const allowed=['language','theme','motion'];if(c.p.role!=='student')allowed.push('coaching','grading');if(c.p.role==='admin')allowed.push('uploadLimit','extensions','grace');
    const prefs={settings:Object.fromEntries(allowed.filter(k=>k in settings).map(k=>[k,settings[k]])),notifications:Object.fromEntries(['messages','notices','fees','attendance'].map(k=>[k,notifications[k]!==false]))};
-   check(await c.admin.from('sl_profiles').update({preferences:prefs}).eq('id',c.p.id));return res.status(200).json({ok:true});
+   check(await c.admin.from('sl_profiles').update({preferences:{...c.p.preferences,...prefs}}).eq('id',c.p.id));return res.status(200).json({ok:true});
   }
   if(action==='mutate'){
    requireThat(Array.isArray(body.ops)&&body.ops.length<=500,'Too many changes.',400);
@@ -119,6 +134,7 @@ export default async function handler(req,res){
    for(const op of body.ops){
     requireThat(op&&typeof op.entity==='string','Invalid change.',400);
     if(['teachers','students'].includes(op.entity)){await updateProfile(c,op);continue;}
+    if(op.entity==='events'&&(op.after?.meetingUrl||op.before?.meetingUrl||op.after?.type==='Online class'))requireThat(false,'Manage this record from Online classes.',400);
     await attachments(c,op.after);applyOperation(c.p,c.db,c.profiles,op);dirty=true;
    }
    if(dirty)await commit(c);return res.status(200).json(payload(c));

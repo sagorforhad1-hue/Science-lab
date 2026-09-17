@@ -10,3 +10,78 @@
 
 .brand strong{white-space:nowrap;font-size:18px}.brand small{font-size:8px;letter-spacing:1.5px}.stat-value{font-size:clamp(23px,2.2vw,30px)}.file-chip .icon{width:14px;height:14px}.intro-animation{animation-duration:.2s}@media(max-width:640px){.attendance-calendar{grid-template-columns:repeat(4,1fr)!important}.attendance-calendar .badge{font-size:9px}.calendar-grid{min-width:490px}.panel:has(.calendar-grid){overflow:auto}.stat-line{display:none}.stat-value{font-size:25px}}
 .demo-banner{padding:12px 16px;border:1px solid #f5bf6370;background:#f5bf6310;color:var(--amber);border-radius:10px;font-size:12px;margin-bottom:24px}.demo-divider{text-align:center;color:var(--muted);font-size:12px;margin:26px 0 12px}.login-form input{min-height:46px}.login-box form{display:grid;gap:14px}.credential{overflow-wrap:anywhere}#cloud-status{white-space:nowrap}
+
+.ai-output{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.8;max-height:55vh;overflow:auto;padding:18px;background:var(--bg);border-radius:12px}.ai-output:empty{display:none}
+
+[hidden]{display:none!important}
+
+/* Functional motion: pointer, keyboard and touch share the same controls. */
+.stat-link{display:block;color:var(--text);text-decoration:none;cursor:pointer}
+.row-link{width:100%;color:var(--text);text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);font:inherit;text-decoration:none}
+.stat-link,.row-link,.legend-button,.donut,.lab-art,button{position:relative;isolation:isolate}
+.stat-link,.row-link,.btn,.nav-item,.legend-button{overflow:hidden;transition:background 180ms ease,border-color 180ms ease,transform 180ms ease,box-shadow 180ms ease}
+.stat-link:focus-visible,.row-link:focus-visible,.legend-button:focus-visible,.donut:focus-visible,.chart-point:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.stat-link:active,.row-link:active,.legend-button:active,.lab-art:active{transform:scale(.98)}
+.legend-button{display:block;background:none;border:0;color:var(--muted);font:inherit;line-height:2.5;padding:2px 8px;text-align:left;border-radius:6px;min-height:40px;width:100%}
+button.donut{border:0;color:var(--text);padding:0}
+.chart-point{cursor:pointer;outline:none}.chart-point .point-core{transition:r 180ms,stroke-width 180ms}
+.chart-point:hover .point-core,.chart-point:focus-visible .point-core{r:7;stroke-width:4}
+.reaction-ripple{pointer-events:none;position:absolute;z-index:3;width:16px;height:16px;border-radius:50%;background:var(--accent);opacity:0;transform:translate(-50%,-50%);animation:lab-reaction 450ms ease-out forwards}
+button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);border-radius:50%;overflow:visible;max-width:100%}
+.lab-art .orbit{pointer-events:none;--orbit-start:35deg;animation:lab-orbit 6s ease-in-out 2}
+.lab-art .orbit.two{--orbit-start:-35deg;animation-direction:reverse}.lab-art .orbit.three{--orbit-start:90deg}
+.lab-art img{pointer-events:none;animation:lab-glow 2s ease-in-out 2}
+.lab-hint{display:block;text-align:center;color:var(--accent);font-size:12px;margin-top:-18px}
+.login-story h1,.login-box h2,.page-heading h1{animation:text-arrive 380ms cubic-bezier(.2,.7,.2,1) both}
+.login-story .eyebrow{animation:text-arrive 300ms ease-out both}
+.page-heading .subtitle{animation:text-arrive 400ms ease-out both}
+@media(hover:hover) and (pointer:fine){
+ .stat-link:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 26px #62ddc114}
+ .row-link:hover,.legend-button:hover{background:var(--accent-soft)}
+ .lab-art:hover img{box-shadow:0 0 70px #62ddc150;transform:scale(1.04)}
+ .btn:hover{box-shadow:0 3px 14px #62ddc116}
+}
+@keyframes lab-reaction{0%{opacity:.28;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(15)}}
+@keyframes text-arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes lab-orbit{0%,100%{transform:rotate(var(--orbit-start))}50%{transform:rotate(calc(var(--orbit-start) + 22deg))}}
+@keyframes lab-glow{50%{filter:drop-shadow(0 0 12px #62ddc180)}}
+@media(max-width:640px){
+ .login-story{position:relative;padding:22px 24px 10px}
+ .login-story h1{display:block;font-size:29px;letter-spacing:-1px;line-height:1.22;max-width:calc(100% - 86px);margin-top:16px}
+ .login-story .eyebrow{margin-top:22px;max-width:calc(100% - 86px);font-size:8px}
+ .login-story>div>p{font-size:12px;line-height:1.6;max-width:calc(100% - 82px);margin-top:10px}
+ .login-story .lab-art{display:grid;position:absolute;right:12px;top:92px;width:86px;height:100px;margin:0}
+ .lab-art img{width:48px;height:48px;border-radius:14px}
+ .orbit{width:82px;height:34px}.orbit:before{width:5px;height:5px;top:3px;left:8px}
+ .lab-art .orbit{animation-duration:3s;animation-iteration-count:1}.lab-hint{font-size:10px;text-align:left;margin:12px 0 0}
+ .login-form{padding-top:18px}.icon-button{min-width:40px;min-height:40px}.chart-point .point-core{r:5}
+ .stat-link:active,.row-link:active{background:var(--accent-soft)}
+ .page-heading h1,.login-story h1{animation-duration:240ms}
+}
+.no-motion *,.no-motion *::before,.no-motion *::after{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.reaction-ripple{display:none}}
+
+.notice-title-action{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left}.molecule[role=button]{cursor:pointer;pointer-events:auto}.molecule[role=button]:focus-visible{outline:2px solid var(--accent)}
+
+/* Coaching identity and truthful usage panels */
+.identity-panel{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:linear-gradient(120deg,#153c5060,#1b244960);margin-bottom:24px;box-shadow:0 12px 35px #0002}
+.identity-cover{width:100%;max-height:220px;object-fit:cover;display:block}
+.identity-body{padding:28px;display:flex;align-items:flex-start;gap:20px}
+.identity-body h1{font-size:clamp(24px,4vw,38px);margin:8px 0 22px}
+.profile-photo,.coaching-logo{width:68px;height:68px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);box-shadow:0 0 16px #5ce2c522;flex-shrink:0}
+.coaching-logo{border-radius:16px;width:84px;height:84px}
+.profile-bio{white-space:pre-wrap;max-width:70ch}.quick-actions,.batch-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.usage-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
+.usage-card{padding:20px;border:1px solid var(--border);border-radius:16px;background:var(--surface);overflow-wrap:anywhere}
+.usage-card p{margin:12px 0}.usage-card small{color:var(--muted)}.usage-card details{margin-top:16px}
+.usage-card progress{width:100%;height:10px;accent-color:var(--accent);border-radius:8px;overflow:hidden}
+.usage-card progress::-webkit-progress-bar{background:#8294ac25}.usage-card progress::-webkit-progress-value{background:var(--accent);transition:width .25s}
+.usage-skeleton{min-height:140px;border-radius:12px;padding:24px;background:linear-gradient(100deg,#83a9bf0a 20%,#83a9bf25 45%,#83a9bf0a 65%);background-size:200% 100%;animation:usage-shimmer 1.5s linear infinite}
+@keyframes usage-shimmer{to{background-position:-200% 0}}
+.chatbot-launch{position:fixed;bottom:24px;right:24px;border:1px solid var(--accent);border-radius:30px;background:var(--bg);color:var(--accent);padding:15px 20px;display:flex;gap:8px;align-items:center;z-index:20;box-shadow:0 8px 25px #0004;cursor:pointer}
+.student-profile-cards .card{transition:transform .2s,box-shadow .2s}.student-profile-cards .card:hover{transform:translateY(-3px);box-shadow:0 12px 24px #0002}
+.impersonation{position:sticky;top:0;z-index:40}.impersonation .btn{margin-left:16px}
+@media(max-width:600px){.identity-body{padding:18px;gap:12px}.coaching-logo{width:52px;height:52px}.profile-photo{width:52px;height:52px}.chatbot-launch{bottom:14px;right:14px;padding:12px}.usage-card{padding:15px}}
+.no-motion .usage-skeleton{animation:none}.no-motion progress,.no-motion .student-profile-cards .card{transition:none}
+@media(prefers-reduced-motion:reduce){.usage-skeleton{animation:none}.usage-card progress::-webkit-progress-value,.student-profile-cards .card{transition:none}}
+@media print{.sidebar,.topbar,.chatbot-launch,.page-footer,.batch-tabs,.student-profile-cards,.content>.btn,.toolbar,.content .btn{display:none!important}.main{margin:0!important}.table-wrap{overflow:visible}body{background:white!important;color:black!important}}

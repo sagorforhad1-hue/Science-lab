@@ -30,3 +30,16 @@ test('CSV import parser preserves quoted commas, quotes, multiline fields and re
 test('individual notices remain invisible to other students',()=>{const h=harness('student','s1','t1');h.run('db.notices.push({id:"private",teacherId:"t1",studentId:"s2",batchId:"all",title:"Private"})');assert.equal(h.run('visible("notices").some(n=>n.id==="private")'),false);});
 test('group chat restricts enrolled students to teacher announcements unless discussion enabled',()=>{const h=harness('student','s1','t1');h.run('chatStudent="group-b1"');assert.ok(h.run('messagesPage()').includes('Only your teacher can post here.'));assert.ok(!h.run('messagesPage()').includes('id="chat-form"'));h.run('db.batches[0].discussion=true');assert.ok(h.run('messagesPage()').includes('id="chat-form"'));assert.ok(!h.run('messagesPage()').includes('group-b3'));});
 test('combined report uses the latest published exam per subject',()=>{const h=harness();h.run('modal=(title,body)=>{globalThis.capturedReport=body}; db.exams.push({id:"chem",teacherId:"t1",batchId:"b2",subject:"Chemistry",title:"Chemistry test",date:today(),total:100,status:"Published"});db.marks.push({id:"chem-m",teacherId:"t1",examId:"chem",studentId:"s1",marks:85});combinedReport("s1")');const report=h.run('capturedReport');assert.ok(report.includes('Chemistry test'));assert.ok(report.includes('Physics · Chapter 03'));assert.ok(!report.includes('Physics · Chapter 01'));});
+
+test('dashboard shortcuts respect roles and expose keyboard-operable chart and attendance controls',()=>{
+ const teacher=harness(),student=harness('student','s1','t1');
+ const html=teacher.run('dashboard()');assert.ok(html.includes('data-go="students"'));assert.ok(html.includes('data-action="pulse-exam:'));assert.ok(html.includes('tabindex="0"'));assert.ok(html.includes('data-action="attendance-breakdown:Absent"'));assert.ok(!html.includes('Ayesha Rahman · Physics'));
+ assert.ok(student.run("stat('Active batches','2','','batches')").includes('data-go="routine"'));assert.ok(!student.run("stat('Active batches','2','','batches')").includes('data-go="batches"'));
+});
+test('student chart detail includes only own visible marks',async()=>{
+ const h=harness('student','s1','t1');h.run('modal=(title,body)=>{globalThis.detailBody=body};');
+ await h.run("featureAction('pulse-exam:'+visible('exams').find(e=>e.status==='Published').id)");
+ assert.ok(h.run('detailBody').includes('Ayesha Rahman'));assert.ok(!h.run('detailBody').includes('Arif Hasan'));
+});
+
+test('only Super Admin can open API connections or see its AI shortcut',()=>{for(const role of ['teacher','student']){const h=harness(role,role==='teacher'?'t1':'s1','t1');assert.equal(h.run("allowed('connections')"),false);assert.ok(!h.run('aiPage()').includes('go:connections'));assert.ok(!h.run('connectionsPage()').includes('service-form'));}const h=harness('admin','admin',null);assert.equal(h.run("allowed('connections')"),true);});

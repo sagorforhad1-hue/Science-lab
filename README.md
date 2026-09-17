@@ -1,108 +1,59 @@
 # Science Lab — Coaching workspace
 
-বাংলা ও ইংরেজিতে কোচিং পরিচালনার স্থানীয় অ্যাপ। ডেটা একই ব্রাউজারে সংরক্ষিত থাকে।
+বাংলা/ইংরেজি coaching app with Supabase login, private cloud data, separate demo and a science-lab theme.
 
-## চালু করুন
+## Local development
+```powershell
+npm ci
+npm run build
+npm start
+```
+Open http://127.0.0.1:5173. Server credentials go in ignored .env.local. Copy variable names from .env.example.
 
-এই ফোল্ডারে terminal খুলে:
+## Account setup
+1. Run supabase/setup.sql in Supabase SQL Editor.
+2. Create your own Auth user in Supabase → Authentication → Users.
+3. Edit the owner email in supabase/create-superadmin.sql and run it.
+4. Log in. Only this Super Admin creates teachers; teachers create their own students.
+5. New teacher/student credentials require a password change at first login.
 
-    node server.mjs
+There is no public sign-up UI. Profiles are provisioned through the authenticated server.
+The database allows only one Super Admin. Browser clients cannot read/write business tables directly.
+Demo accounts use local sample data and do not access real APIs or accounts.
 
-তারপর http://127.0.0.1:5173 খুলুন। কোনো npm installation বা API key লাগবে না।
+## Connected services
+See [API-SETUP-BN.md](API-SETUP-BN.md) for environment variables, controls, limitations and setup.
+- Groq AI assistants for teachers, permitted students and the Super Admin.
+- Resend email and Firebase web push through authenticated server adapters.
+- WhatsApp Cloud API outbound template adapter, OFF until configured.
+- Google Meet/Zoom scheduled class links, restricted by enrollment.
+- Global and per-teacher feature/AI switches, individual student AI access, usage limits.
 
-Windows-এ Start-Science-Lab.cmd-ও চালাতে পারেন। একই ঠিকানা এবং একই browser profile ব্যবহার করুন; অন্য ব্রাউজারে আলাদা স্থানীয় ডেটা থাকবে।
+## Coaching features
+Students, batches, attendance, homework/submissions, teaching materials, exams/marks,
+MCQ quizzes with server-side scoring, routine, notices, chat, calendar, manual fees/receipts,
+analytics, teacher plans, billing, settings and data export.
 
-## শুরু করার সহজ পথ
+## Checks
+```powershell
+npm run build
+npm test
+npm run check
+```
 
-1. প্রথমবার শিক্ষক ড্যাশবোর্ড ও নমুনা তথ্য দেখাবে।
-2. উপরের বাংলা / EN বাটন দিয়ে ভাষা বদলান।
-3. **Switch workspace** থেকে Teacher, Student, Super Admin ডেমো ভিউ দেখুন।
-4. **Super Admin → Teachers → Create teacher** থেকে স্থানীয় শিক্ষক অ্যাকাউন্ট বানান।
-5. **Teacher → Students → Add student** থেকে শিক্ষার্থী অ্যাকাউন্ট বানান।
-6. অস্থায়ী লগইন তথ্য তৈরির পর নিজে সংশ্লিষ্ট ব্যক্তিকে দিন। প্রথম লগইনে পাসওয়ার্ড পরিবর্তন করতে হবে।
-7. **Settings → Data & backup → Export backup** দিয়ে রেকর্ড ও সংযুক্ত ফাইল সংরক্ষণ করুন।
-8. রসিদ ও রিপোর্ট কার্ডের **Print report** থেকে browser-এর Save as PDF ব্যবহার করুন।
-
-## এই সংস্করণে কাজ করে
-
-- আলাদা শিক্ষক, শিক্ষার্থী, প্ল্যাটফর্ম অ্যাডমিন ভিউ; প্রকাশ্য signup নেই।
-- শিক্ষার্থী যোগ/সম্পাদনা/আর্কাইভ; একাধিক ব্যাচে ভর্তি; অভিভাবক নম্বর বাধ্যতামূলক।
-- ব্যাচ যোগ/সম্পাদনা/আর্কাইভ; আসন ও account quota যাচাই।
-- তারিখ/ব্যাচভিত্তিক Present, Absent, Late; সবাইকে উপস্থিত; সংশোধনের audit log।
-- হাজিরার ইতিহাস, তারিখের পরিসর, CSV, print report ও শিক্ষার্থীর মাসিক calendar।
-- হোমওয়ার্ক draft/publish, deadline, late submission, text/file/camera attachment।
-- শিক্ষার্থীর submission/resubmission; শিক্ষকের নম্বর, মতামত, ফেরত পাঠানো; CSV/ZIP export।
-- বিষয় ও অধ্যায়সহ পাঠ্য উপকরণ, ফাইল ও ভিডিও লিংক; PDF/image/audio/video preview।
-- পরীক্ষা, marks entry, configurable grade thresholds, publish, ranking, printable report card।
-- MCQ authoring, 4 options, answer key, schedule, randomized order, countdown, scoring, review।
-- কুইজ চলাকালে answer ও timer deadline locally save থাকে; refresh করে আবার Start quiz করলে resume।
-- সাপ্তাহিক রুটিন; একই শিক্ষকের overlapping class রোধ।
-- নোটিশ, pin, expiry, batch targeting, platform announcements।
-- শিক্ষক–শিক্ষার্থী local chat, file/audio/video, ১৫ মিনিটের মধ্যে নিজের মেসেজ edit/delete।
-- মাইক্রোফোন অনুমতি দিলে voice recording করে chat/review-তে attach।
-- Calendar month/week/list, exam/deadline/routine এবং custom events।
-- ফি, আংশিক পেমেন্ট, Cash/bKash/Nagad manual entry, বকেয়া, receipt, CSV।
-- Attendance/marks progress chart এবং শিক্ষার্থীর summary।
-- Admin teacher CRUD, suspension, support view, plans, billing, feature flags ও quotas।
-- মেয়াদ শেষের পর grace period অনুযায়ী app খোলার সময় local subscription suspension।
-- Guardian notification previews ও summary queue; কোনো automatic message পাঠানো হয় না।
-- AI Studio-তে স্পষ্টভাবে চিহ্নিত sample/rule-based previews।
-- বাংলা/ইংরেজি, dark/light, reduced motion, notification preferences, password change।
-- Teacher-scoped অথবা platform backup, attachments-সহ import/export।
-- Keyboard focus, native accessible dialogs, mobile navigation, reduced-motion support।
-
-## বর্তমান সীমা / পরবর্তী integration phase
-
-এটি কার্যকর **local demo**, production SaaS নয়। Local role checks UI যাচাইয়ের জন্য; browser owner developer tools দিয়ে স্থানীয় records দেখতে/পরিবর্তন করতে পারেন। বাস্তব শিক্ষার্থীর ডেটা দিয়ে প্রকাশের আগে server authentication, database row-level authorization, storage permissions এবং server-side validation যোগ করতে হবে।
-
-- Vercel, Supabase, Git/GitHub, payment gateway, WhatsApp, email, SMS ও AI provider সংযুক্ত করা হয়নি।
-- Multi-device sync এবং real-time network chat পরে backend-এর মাধ্যমে চালু হবে।
-- WhatsApp queue ও AI Studio আসল external execution নয়।
-- Background jobs এবং scheduled notifications browser বন্ধ থাকা অবস্থায় চলে না।
-- PDF তৈরি করতে browser print ব্যবহার করা হয়; unattended PDF generation পরে server-এ যোগ করা যাবে।
-- Office files download হয়; in-browser Word/PowerPoint editing নেই।
-- Rich-text editing-এর বদলে সহজ plain text ব্যবহার করা হয়েছে। Batch group chat, bulk CSV import, individual notice targeting এবং latest published result per subject দিয়ে combined report যুক্ত আছে।
-- Camera/microphone ও ফাইল preview browser/device support এবং user permission-এর ওপর নির্ভরশীল।
-- Fonts online থাকলে Google Fonts থেকে আসে, offline হলে system font ব্যবহার হয়।
-
-## Developer notes
-
-- dist/ : সরাসরি পরিবেশনযোগ্য সম্পূর্ণ static app।
-- src/core.js : shell, navigation, dashboard, scope helpers।
-- src/features.js : local module workflows, form validation, quiz, backup, UI event handlers।
-- dist/data.js : normalized local records, sample dataset, domain calculations।
-- dist/storage.js : IndexedDB file storage এবং local password hashing।
-- dist/zip.js : dependency-free submission ZIP packaging।
-- dist/integrations.js : future AI/messaging contracts; external calls currently fail explicitly।
-- build.mjs : core ও features একসাথে dist/app.js-এ তৈরি করে।
-- server.mjs : 127.0.0.1:5173-এ static file server; directory traversal প্রতিরোধ করে।
-- tests/domain.test.mjs : domain rules, role scoping, route rendering ও integration-boundary tests।
-
-Source পরিবর্তনের পর:
-
-    node build.mjs
-    node --test tests/domain.test.mjs
-
-এবং browser reload করুন।
-
-## Validation performed
-
-১৫টি automated test সফল: fees, grading, escaping, সব অনুমোদিত route দুই ভাষায় render, student/teacher scopes, invalid form records, scoped backup, ZIP format, disconnected integration behavior, expiry/grace handling।
-
-Browser-এ teacher/admin module navigation, উপস্থিতি save/reload, quiz authoring question addition, student quiz timer/3-of-3 scoring, language toggle এবং 390px mobile layout পরীক্ষা করা হয়েছে। Voice capture ও external services পরীক্ষা করা হয়নি; সেগুলোর জন্য যথাক্রমে device permission ও future API integration লাগবে।
-
-AI/API পরিকল্পনা: API-GUIDE.md।
-
-## Vercel deployment repair (2026-09-16)
-
+## Deployment
+Vercel project: forhad1/sciencelab.
 Live URL: https://sciencelab-silk.vercel.app
+Build command: npm run build. Output: dist. Framework: Other.
+The /api/app Node function handles trusted authentication and provider calls.
+.env files are excluded from Git and deployment. Configure Production variables in Vercel.
+GitHub push does not apply SQL or copy local environment variables.
 
-The former Node framework preset treated dist/app.js as a server entry point and failed with `ReferenceError: sessionStorage is not defined`. The project now uses the Other/static preset (`framework: null`), `npm run build`, and output directory `dist`. The corrected version was deployed through the Vercel CLI. Local changes have not been committed or pushed to GitHub.
-
-Static source assets now live in `public/`; edit them there. `build.mjs` copies them to `dist/` and compiles the application. A clean build no longer depends on a pre-existing `dist/` folder. Keep `public/`, the build script, and `vercel.json` together when committing these changes.
-
-`.env.local` has slots for Groq, Firebase Cloud Messaging, and Resend; `.env.example` is the blank shareable template. Existing local credentials are preserved. Firebase requires web-app configuration, a public VAPID key, and server service-account credentials, not just one API key. Environment files are excluded from Git and Vercel source uploads. Never place private keys in `public/` or `dist/`.
-
-The API slots do not yet activate provider calls. The current app remains a browser-local demo. Authenticated server adapters, provider credentials in Vercel environment settings, and backend/database work are separate follow-up work. Saving a value in the local file does not automatically add it to Vercel. No SQL changes were made during this deployment repair.
-
-Validation: clean-folder build test, 15 existing tests, JavaScript syntax checks, and live dashboard rendering.
+## Practical limits
+AI output is a reviewable draft and does not change marks, permissions or send messages.
+Email needs a verified sender; Supabase password-reset SMTP is configured separately.
+Push requires device opt-in; the most recently registered browser per account receives notifications.
+Messaging delivery status records provider acceptance, not a confirmed read/delivery receipt.
+WhatsApp incoming bot/webhook automation is not included.
+Meet/Zoom links launch the provider; automatic meeting creation/recording is not implemented.
+Fees and billing are manual records; no payment gateway is connected.

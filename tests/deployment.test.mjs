@@ -16,7 +16,7 @@ test('clean deployment builds all static assets without a pre-existing dist or s
   await fs.writeFile(path.join(dir, '.env.local'), 'GROQ_API_KEY=not-a-real-key-test-sentinel');
   execFileSync(process.execPath, [fileURLToPath(new URL('build.mjs', root))], {cwd:dir});
   const files = await fs.readdir(path.join(dir, 'dist'));
-  assert.deepEqual(files.sort(), ['app.js','cloud.js','data.js','favicon.svg','i18n.js','index.html','integrations.js','storage.js','style.css','zip.js'].sort());
+  assert.deepEqual(files.sort(), ['app.js','cloud.js','push.js','firebase-messaging-sw.js','data.js','favicon.svg','i18n.js','index.html','integrations.js','storage.js','style.css','zip.js'].sort());
   for (const file of files) {
     assert.ok(!(await fs.readFile(path.join(dir, 'dist', file), 'utf8')).includes('not-a-real-key-test-sentinel'));
   }

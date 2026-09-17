@@ -1,5 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 let clientPromise;
+let viewTeacherId=null;
+export async function viewTeacher(id){await flush();const previous=viewTeacherId;viewTeacherId=id;try{return await request('session');}catch(error){viewTeacherId=previous;throw error;}}
 let real=false,baseline=null,queued=null,draining=null,epoch=0,dirty=false;
 export const isReal=()=>real;
 export function client(){return clientPromise??=(async()=>{
@@ -14,22 +16,22 @@ export function client(){return clientPromise??=(async()=>{
 export async function request(action,body){
  const auth=await client();const {data:{session}}=await auth.auth.getSession();
  if(!session)throw Error('Please log in again.');
- const response=await fetch('/api/app?action='+action,{method:body===undefined?'GET':'POST',cache:'no-store',headers:{Authorization:'Bearer '+session.access_token,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const response=await fetch('/api/app?action='+action,{method:body===undefined?'GET':'POST',cache:'no-store',headers:{Authorization:'Bearer '+session.access_token,...(viewTeacherId?{'X-View-Teacher':viewTeacherId}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
  const result=await response.json();if(!response.ok)throw Error(result.error||'Request failed.');return result;
 }
 export async function restore(){const auth=await client();const {data:{session},error}=await auth.auth.getSession();if(error)throw error;return session?await request('session'):null;}
 export async function login(email,password){const auth=await client();const {error}=await auth.auth.signInWithPassword({email,password});if(error)throw Error(error.message);try{return await request('session');}catch(e){await auth.auth.signOut({scope:'local'});throw e;}}
 export async function forgot(email){const auth=await client();const {error}=await auth.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/?reset=1'});if(error)throw Error(error.message);}
-export async function password(password,current){await request('password',{password,current});sessionStorage.removeItem('sl-password-recovery');history.replaceState(null,'',location.pathname);return await request('session');}
+export async function password(password,current){const auth=await client();const {data:{session}}=await auth.auth.getSession();const email=session?.user?.email;if(!email)throw Error('Please log in again.');await request('password',{password,current});const {error}=await auth.auth.signInWithPassword({email,password});if(error)throw Error('Password saved. Please log in with your new password.');sessionStorage.removeItem('sl-password-recovery');history.replaceState(null,'',location.pathname);return await request('session');}
 export async function logout(){await flush();reset();try{const auth=await client();await auth.auth.signOut({scope:'local'});}catch{}sessionStorage.removeItem('sl-password-recovery');}
-export function reset(){real=false;baseline=null;queued=null;epoch++;dirty=false;}
+export function reset(){viewTeacherId=null;real=false;baseline=null;queued=null;epoch++;dirty=false;}
 export function attach(db){real=true;baseline=structuredClone(db);}
 export function status(value,error){window.dispatchEvent(new CustomEvent('sl-cloud-status',{detail:{value,error}}));}
 const equals=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const arrays=['teachers','students','batches','attendance','assignments','submissions','materials','exams','marks','quizzes','routine','notices','messages','payments','billing','queue','events','plans'];
 function diff(before,after){const ops=[];for(const entity of arrays){const old=new Map((before[entity]||[]).map(r=>[r.id,r]));const next=new Map((after[entity]||[]).map(r=>[r.id,r]));for(const id of new Set([...old.keys(),...next.keys()]))if(!equals(old.get(id),next.get(id)))ops.push({entity,id,before:old.get(id)||null,after:next.get(id)||null});}return ops;}
 export function persist(db){
- if(!real)return false;queued=structuredClone(db);dirty=true;status('saving');
+ if(!real)return false;if(viewTeacherId){status('error','Read-only teacher preview');return true;}queued=structuredClone(db);dirty=true;status('saving');
  if(!draining)draining=drain(epoch).finally(()=>{draining=null;if(queued&&real)persist(queued);});return true;
 }
 async function drain(generation){

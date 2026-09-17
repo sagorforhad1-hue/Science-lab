@@ -9,6 +9,7 @@ core=core.replace("function renderPage(){return dashboard();}","function renderP
 .replace('function bindPage(){}','function bindPage(){bindFeatures();}')
 .replace("else if(a.startsWith('go:'))go(a.slice(3));}","else if(a.startsWith('go:'))go(a.slice(3));else featureAction(a);}")
 .replace(/\nrender\(\);\s*$/,'');
-await fs.writeFile('dist/app.js',"import * as cloud from './cloud.js';\nimport {putFile,getFile,getAllFiles,clearFiles,passwordHash} from './storage.js';\n"+core+'\n'+await fs.readFile('src/features.js','utf8')+'\n'+await fs.readFile('src/auth-ui.js','utf8')+'\nboot();\n');
+await fs.writeFile('dist/app.js',"import * as cloud from './cloud.js';\nimport {putFile,getFile,getAllFiles,clearFiles,passwordHash} from './storage.js';\n"+core+'\n'+await fs.readFile('src/features.js','utf8')+'\n'+await fs.readFile('src/auth-ui.js','utf8')+'\n'+await fs.readFile('src/connected-ui.js','utf8')+'\n'+await fs.readFile('src/interactions.js','utf8')+'\n'+await fs.readFile('src/workspace-upgrades.js','utf8')+'\nboot();\n');
 await buildClient('src/cloud.js','dist/cloud.js');
+await buildClient('src/push.js','dist/push.js');
 console.log('Built Science Lab local app.');
