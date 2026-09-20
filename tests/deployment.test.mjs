@@ -18,7 +18,7 @@ test('clean deployment builds all static assets without a pre-existing dist or s
   const files = (await fs.readdir(path.join(dir, 'dist'), {withFileTypes:true})).filter(entry=>entry.isFile()).map(entry=>entry.name);
   assert.deepEqual(files.sort(), ['app.js','cloud.js','push.js','firebase-messaging-sw.js','data.js','favicon.svg','i18n.js','index.html','integrations.js','storage.js','style.css','zip.js'].sort());
   const agentFiles = await fs.readdir(path.join(dir, 'dist', 'agents'));
-  assert.deepEqual(agentFiles.sort(), ['app-doctor-reference.jpg','ask-me-reference.jpg','communication-reference.jpg','help-reference.jpg','student-reference.jpg'].sort());
+  assert.deepEqual(agentFiles.sort(), ['app-doctor.png','ask-me.png','communication.png','help.png','student.png'].sort());
   for (const file of files) {
     assert.ok(!(await fs.readFile(path.join(dir, 'dist', file), 'utf8')).includes('not-a-real-key-test-sentinel'));
   }

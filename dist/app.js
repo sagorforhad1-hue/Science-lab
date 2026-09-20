@@ -363,11 +363,11 @@ const serviceLabels={ai:['AI Studio','এআই স্টুডিও'],email:['
 const aiLabels={quiz:['Quiz assistant','কুইজ সহকারী'],grading:['Grading assistant','মূল্যায়ন সহকারী'],insights:['Learning insights','শেখার বিশ্লেষণ'],guardian:['Guardian summary','অভিভাবকের সারাংশ'],tutor:['Study tutor','পড়াশোনার সহকারী'],operations:['Admin operations','অ্যাডমিনের কাজের সহকারী'],billing:['Billing analyst','বিলিং বিশ্লেষক'],announcement:['Announcement writer','নোটিশ লেখক'],support:['Support assistant','সাপোর্ট সহকারী']};
 const toolLabel=k=>bilingual(...aiLabels[k]);
 const agentProfiles=Object.freeze({
- appDoctor:{name:['App Doctor','অ্যাপ ডাক্তার'],role:['System health and real incident analysis','সিস্টেম health ও বাস্তব সমস্যা বিশ্লেষণ'],image:'/agents/app-doctor-reference.jpg',access:['admin'],asset:'3D asset slot'},
- communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication-reference.jpg',access:['admin','teacher'],asset:'3D asset slot'},
- tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student-reference.jpg',access:['teacher','student'],asset:'3D asset slot'},
- help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help-reference.jpg',access:['admin','teacher','student'],asset:'3D asset slot'}
- ,askMe:{name:['Ask Me','আমাকে জিজ্ঞেস করো'],role:['In-app help for this account','এই account-এর জন্য app help'],image:'/agents/ask-me-reference.jpg',access:['admin','teacher','student'],asset:'3D asset slot'}
+ appDoctor:{name:['App Doctor','অ্যাপ ডাক্তার'],role:['System health and real incident analysis','সিস্টেম health ও বাস্তব সমস্যা বিশ্লেষণ'],image:'/agents/app-doctor.png',access:['admin'],asset:'3D asset slot'},
+ communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication.png',access:['admin','teacher'],asset:'3D asset slot'},
+ tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student.png',access:['teacher','student'],asset:'3D asset slot'},
+ help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help.png',access:['admin','teacher','student'],asset:'3D asset slot'}
+ ,askMe:{name:['Ask Me','আমাকে জিজ্ঞেস করো'],role:['In-app help for this account','এই account-এর জন্য app help'],image:'/agents/ask-me.png',access:['admin','teacher','student'],asset:'3D asset slot'}
 });
 const visibleAgentProfiles=()=>Object.entries(agentProfiles).filter(([,p])=>p.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher'));
 let connectedStatus=null;
