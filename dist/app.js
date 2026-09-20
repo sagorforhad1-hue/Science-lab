@@ -367,7 +367,6 @@ const agentProfiles=Object.freeze({
  communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication.png',access:['admin','teacher'],asset:'3D asset slot'},
  tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student.png',access:['teacher','student'],asset:'3D asset slot'},
  help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help.png',access:['admin','teacher','student'],asset:'3D asset slot'}
- ,askMe:{name:['Ask Me','আমাকে জিজ্ঞেস করো'],role:['In-app help for this account','এই account-এর জন্য app help'],image:'/agents/ask-me.png',access:['admin','teacher','student'],asset:'3D asset slot'}
 });
 const visibleAgentProfiles=()=>Object.entries(agentProfiles).filter(([,p])=>p.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher'));
 let connectedStatus=null;
@@ -389,6 +388,7 @@ aiPage=function(){
  '<section class="agent-directory"><div class="section-heading"><div><h2>'+bilingual('Character agents','ক্যারেক্টার agent')+'</h2><p class="subtitle">'+bilingual('Each character has a role and permission boundary. 3D assets will load in this slot when supplied.','প্রতিটি character-এর role ও permission আলাদা। 3D asset দিলে এই slot-এ যুক্ত হবে।')+'</p></div></div><div class="cards">'+visibleAgentProfiles().map(([k,p])=>'<article class="card agent-card"><div class="agent-thumb"><img src="'+p.image+'" alt="'+esc(bilingual(...p.name))+' reference character"><span>'+esc(p.asset)+'</span></div><h3>'+esc(bilingual(...p.name))+'</h3><p>'+esc(bilingual(...p.role))+'</p>'+btn(bilingual('Open agent','agent খোলো'),'connected-ai:agent-'+k,'primary small')+'</article>').join('')+'</div></section>';
 };
 async function openAssistant(tool){
+ if(tool==='agent-askMe'){openAskMe();return;}
  const agentKey=tool.startsWith('agent-')?tool.slice(6):'';const profile=agentProfiles[agentKey];
  if(profile){
   const permitted=profile.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher');if(!permitted){toast(bilingual('This agent is not available for this account.','এই account-এর জন্য agentটি চালু নেই।'),true);return;}
@@ -659,5 +659,33 @@ featureAction=async function(action){
  }
  return scienceLabFeatureAction(action);
 };
+
+// A non-modal, account-scoped conversation. Closing it disposes the WebGL scene.
+let askMeCleanup=null;
+async function openAskMe(){
+ if(!session||!allowed('ai')||session.impersonating)return;
+ if(askMeCleanup){askMeCleanup();return;}
+ const owner=currentUser(),panel=document.createElement('section');panel.className='ask-me-panel';panel.setAttribute('aria-label','Ask Me');
+ panel.innerHTML='<div class="ask-me-character"></div><div class="ask-me-chat"><header><strong>Ask Me</strong><button type="button" class="icon-button ask-me-close" aria-label="'+e('Close')+'">'+icon('close')+'</button></header><p class="ask-me-status" role="status">'+bilingual('Ask a question. I’m listening.','প্রশ্ন করো, আমি শুনছি।')+'</p><div class="ask-me-messages" role="log" aria-live="polite"></div><form><label class="sr-only" for="ask-me-input">'+bilingual('Message','মেসেজ')+'</label><textarea id="ask-me-input" required maxlength="3000" rows="2" placeholder="'+bilingual('Write a message…','মেসেজ লিখুন…')+'"></textarea><button class="btn primary" type="submit">'+bilingual('Send','পাঠাও')+'</button></form></div>';
+ document.body.append(panel);let model,closed=false,replyTimer;const messages=[],feed=panel.querySelector('[role=log]'),status=panel.querySelector('[role=status]'),form=panel.querySelector('form');
+ const cleanup=()=>{closed=true;clearTimeout(replyTimer);model?.dispose();panel.remove();observer.disconnect();document.removeEventListener('keydown',escape);askMeCleanup=null;$('#chatbot-launch')?.focus();};
+ const escape=e=>{if(e.key==='Escape')cleanup();};
+ const observer=new MutationObserver(()=>{if(!session||currentUser()!==owner||!allowed('ai')||session.impersonating)cleanup();});observer.observe($('#app'),{childList:true,subtree:true});
+ askMeCleanup=cleanup;panel.querySelector('.ask-me-close').onclick=cleanup;document.addEventListener('keydown',escape);
+ function bubble(text,mine=false){const p=document.createElement('p');p.className='ask-me-bubble'+(mine?' mine':'');p.textContent=text;feed.append(p);feed.scrollTop=feed.scrollHeight;return p;}
+ form.onsubmit=async ev=>{
+  ev.preventDefault();const input=form.querySelector('textarea'),button=form.querySelector('button'),prompt=input.value.trim();if(!prompt||button.disabled)return;
+  bubble(prompt,true);input.value='';button.disabled=true;model?.setState('thinking');status.textContent=bilingual('Thinking…','ভাবছি…');
+  try{
+   let text;if(session.demo)text=bilingual('Demo mode: sign in to your real account for an AI reply.','ডেমো মোড: AI-এর উত্তর পেতে আসল অ্যাকাউন্টে লগইন করো।');
+   else{await cloud.flush();const result=await cloud.request('ai-run',{tool:isAdmin()?'support':'tutor',language:db.settings.language,prompt:('Conversation so far:\n'+messages.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt).slice(-12000)});text=result.text;}
+   if(closed)return;messages.push({role:'user',text:prompt},{role:'assistant',text});bubble(text);model?.setState('replying');status.textContent=bilingual('Reply ready','উত্তর এসেছে');replyTimer=setTimeout(()=>model?.setState('idle'),3500);
+  }catch(err){if(!closed){bubble(err.message);status.textContent=bilingual('Could not get a reply. Try again.','উত্তর আসেনি। আবার চেষ্টা করো।');model?.setState('idle');input.value=prompt;}}
+  finally{button.disabled=false;if(!closed)input.focus();}
+ };
+ form.querySelector('textarea').focus();
+ try{const {mountCharacter}=await import('./ask-me-model.js');if(!closed)model=mountCharacter(panel.querySelector('.ask-me-character'),matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.classList.contains('no-motion'));}
+ catch{if(!closed)panel.querySelector('.ask-me-character').textContent=bilingual('3D is unavailable on this device. Chat is still available.','এই ডিভাইসে 3D চলছে না। চ্যাট ব্যবহার করতে পারো।');}
+}
 
 boot();

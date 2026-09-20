@@ -123,4 +123,20 @@ button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);bor
 .agent-empty{color:var(--muted);font-size:11px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:#0f172a66}
 .agent-bubble{max-width:82%;align-self:flex-start;padding:9px 12px;border:1px solid var(--line);border-radius:10px 10px 10px 2px;background:#0f172acc;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .agent-bubble.mine{align-self:flex-end;border-radius:10px 10px 2px 10px;background:#1a3b36dd}
+.ask-me-panel{position:fixed;right:18px;bottom:78px;width:min(350px,calc(100vw - 24px));z-index:45;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none;max-height:calc(100dvh - 90px)}
+.ask-me-character{width:192px;height:192px;flex:0 0 192px;background:transparent;pointer-events:auto;font-size:12px;color:var(--text)}
+.ask-me-character canvas{display:block;width:100%!important;height:100%!important;touch-action:pan-y}
+.ask-me-chat{width:100%;min-height:0;display:flex;flex-direction:column;pointer-events:auto;color:var(--text);text-shadow:0 1px 3px var(--bg)}
+.ask-me-chat header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ask-me-chat header strong,.ask-me-status{background:var(--panel);border-radius:9px;padding:6px 10px;align-self:flex-start}
+.ask-me-chat header button{background:var(--panel)}
+.ask-me-status{font-size:11px;margin:6px 0}
+.ask-me-messages{overflow-y:auto;overscroll-behavior:contain;min-height:0;max-height:210px;display:flex;flex-direction:column;gap:8px;padding:4px 1px}
+.ask-me-bubble{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);border-radius:12px 12px 12px 2px;padding:10px 12px;max-width:94%;font-size:12px;line-height:1.65;flex-shrink:0}
+.ask-me-bubble.mine{background:var(--accent-soft);align-self:flex-end;border-radius:12px 12px 2px 12px}
+.ask-me-chat form{display:flex;gap:6px;flex-shrink:0;padding-top:8px;align-items:flex-end}
+.ask-me-chat textarea{flex:1;min-width:0;max-height:90px;resize:vertical;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:600px),(max-height:650px){.ask-me-character{width:150px;height:150px;flex-basis:150px}.ask-me-panel{right:12px;bottom:65px;max-height:calc(100dvh - 75px)}.ask-me-messages{max-height:160px}}
+@media print{.ask-me-panel{display:none!important}}
 @media(max-width:640px){.agent-dialog .agent-stage img{width:150px;height:190px}.agent-dialog .agent-stage{min-height:125px}.agent-dialog #ai-form{padding:11px}}

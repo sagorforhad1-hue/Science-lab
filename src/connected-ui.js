@@ -7,7 +7,6 @@ const agentProfiles=Object.freeze({
  communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication.png',access:['admin','teacher'],asset:'3D asset slot'},
  tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student.png',access:['teacher','student'],asset:'3D asset slot'},
  help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help.png',access:['admin','teacher','student'],asset:'3D asset slot'}
- ,askMe:{name:['Ask Me','আমাকে জিজ্ঞেস করো'],role:['In-app help for this account','এই account-এর জন্য app help'],image:'/agents/ask-me.png',access:['admin','teacher','student'],asset:'3D asset slot'}
 });
 const visibleAgentProfiles=()=>Object.entries(agentProfiles).filter(([,p])=>p.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher'));
 let connectedStatus=null;
@@ -29,6 +28,7 @@ aiPage=function(){
  '<section class="agent-directory"><div class="section-heading"><div><h2>'+bilingual('Character agents','ক্যারেক্টার agent')+'</h2><p class="subtitle">'+bilingual('Each character has a role and permission boundary. 3D assets will load in this slot when supplied.','প্রতিটি character-এর role ও permission আলাদা। 3D asset দিলে এই slot-এ যুক্ত হবে।')+'</p></div></div><div class="cards">'+visibleAgentProfiles().map(([k,p])=>'<article class="card agent-card"><div class="agent-thumb"><img src="'+p.image+'" alt="'+esc(bilingual(...p.name))+' reference character"><span>'+esc(p.asset)+'</span></div><h3>'+esc(bilingual(...p.name))+'</h3><p>'+esc(bilingual(...p.role))+'</p>'+btn(bilingual('Open agent','agent খোলো'),'connected-ai:agent-'+k,'primary small')+'</article>').join('')+'</div></section>';
 };
 async function openAssistant(tool){
+ if(tool==='agent-askMe'){openAskMe();return;}
  const agentKey=tool.startsWith('agent-')?tool.slice(6):'';const profile=agentProfiles[agentKey];
  if(profile){
   const permitted=profile.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher');if(!permitted){toast(bilingual('This agent is not available for this account.','এই account-এর জন্য agentটি চালু নেই।'),true);return;}
