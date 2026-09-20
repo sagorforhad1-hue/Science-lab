@@ -47,7 +47,7 @@ const upgradesAllowed=allowed;
 allowed=function(p){return session?.impersonating&&p==='connections'?false:upgradesAllowed(p);};
 const upgradesBind=bindFeatures;
 bindFeatures=function(){upgradesBind();if($('#usage-content'))loadUsage();if(!session)return;
- if(!isStudent()&&allowed('ai')&&!session.impersonating&&!$('#chatbot-launch')){const b=document.createElement('button');b.id='chatbot-launch';b.className='chatbot-launch';b.dataset.action='connected-ai:'+(isAdmin()?'support':'tutor');b.setAttribute('aria-label',bilingual('Open AI assistant','AI সহকারী খোলো'));b.innerHTML=icon('ai')+' '+bilingual('Ask AI','AI-কে জিজ্ঞেস করো');$('.main').append(b);}
+ if(allowed('ai')&&!session.impersonating&&!$('#chatbot-launch')){const b=document.createElement('button');b.id='chatbot-launch';b.className='chatbot-launch';b.dataset.action='connected-ai:agent-askMe';b.setAttribute('aria-label',bilingual('Open Ask Me','Ask Me খোলো'));b.innerHTML=icon('ai')+' '+bilingual('Ask Me','আমাকে জিজ্ঞেস করো');$('.main').append(b);}
  if(session.impersonating){const banner=$('.impersonation');if(banner)banner.innerHTML=bilingual('Viewing as ','দেখছ: ')+esc(me()?.name)+' · '+bilingual('Read-only','শুধু দেখা যাবে')+btn(bilingual('Exit view','ফিরে যাও'),'return-admin','small');}
 };
 async function readProfileImage(input){

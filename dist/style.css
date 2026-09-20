@@ -107,3 +107,20 @@ button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);bor
 .no-motion .agent-stage img{animation:none}
 @media(prefers-reduced-motion:reduce){.agent-stage img,.agent-card .agent-thumb img{animation:none;transition:none}}
 @media(max-width:640px){.agent-thumb{height:150px}.agent-stage img{width:62px;height:62px}}
+.agent-dialog{background:transparent;border:0;box-shadow:none;overflow:visible}
+.agent-dialog::backdrop{background:transparent;backdrop-filter:none}
+.agent-dialog .modal-header{background:transparent;border:0;padding:0 0 12px}
+.agent-dialog .modal-header h2{color:var(--text);text-shadow:0 2px 16px #000}
+.agent-dialog .modal-header .icon-button{background:var(--panel);border-color:var(--line)}
+.agent-dialog .modal-body{padding:0;max-width:620px}
+.agent-dialog .modal-actions{border:0;padding:12px 0 0}
+.agent-dialog .agent-stage{background:transparent;border:0;padding:0;min-height:160px;align-items:flex-end}
+.agent-dialog .agent-stage img{width:210px;height:250px;object-fit:contain;filter:drop-shadow(0 14px 18px #0007);background:transparent}
+.agent-dialog .agent-stage div{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#0f172a99;backdrop-filter:blur(8px);max-width:280px}
+.agent-dialog #ai-form,.agent-dialog #ai-result{background:#0f172a99;border:1px solid var(--line);border-radius:12px;padding:14px;backdrop-filter:blur(8px)}
+.agent-dialog #ai-result{margin-top:10px;white-space:pre-wrap;max-height:220px;overflow:auto}
+.agent-inbox{max-height:210px;overflow:auto;display:flex;flex-direction:column;gap:9px;margin:0 0 10px;padding:2px}
+.agent-empty{color:var(--muted);font-size:11px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:#0f172a66}
+.agent-bubble{max-width:82%;align-self:flex-start;padding:9px 12px;border:1px solid var(--line);border-radius:10px 10px 10px 2px;background:#0f172acc;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.agent-bubble.mine{align-self:flex-end;border-radius:10px 10px 2px 10px;background:#1a3b36dd}
+@media(max-width:640px){.agent-dialog .agent-stage img{width:150px;height:190px}.agent-dialog .agent-stage{min-height:125px}.agent-dialog #ai-form{padding:11px}}
