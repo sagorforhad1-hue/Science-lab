@@ -85,3 +85,11 @@ button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);bor
 .no-motion .usage-skeleton{animation:none}.no-motion progress,.no-motion .student-profile-cards .card{transition:none}
 @media(prefers-reduced-motion:reduce){.usage-skeleton{animation:none}.usage-card progress::-webkit-progress-value,.student-profile-cards .card{transition:none}}
 @media print{.sidebar,.topbar,.chatbot-launch,.page-footer,.batch-tabs,.student-profile-cards,.content>.btn,.toolbar,.content .btn{display:none!important}.main{margin:0!important}.table-wrap{overflow:visible}body{background:white!important;color:black!important}}
+
+/* Keep the conversation composer visible while the message feed scrolls. */
+.chat-layout{min-height:0}
+.chat-main{min-height:0}
+.chat-feed{min-height:0;overscroll-behavior:contain}
+.chat-compose{flex-shrink:0}
+.chat-compose input[name=message]{flex:1;min-width:0}
+.back-nav .icon{transform:rotate(180deg)}
