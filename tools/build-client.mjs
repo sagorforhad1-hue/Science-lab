@@ -23,7 +23,7 @@ export async function buildClient(input,output){
     const pkgPath=path.join(nodeRoot,name,'package.json'),pkg=JSON.parse(await fs.readFile(pkgPath,'utf8'));
     const suffix=args.path.slice(name.length);
     if(!suffix)resolved=path.resolve(path.dirname(pkgPath),typeof pkg.browser==='string'?pkg.browser:pkg.module||pkg.main||'index.js');
-    else resolved=createRequire(parent).resolve(args.path);
+    else resolved=createRequire(pkgPath).resolve(args.path);
    }
    if(!resolved)throw Error('Cannot resolve '+args.path);
    const allowed=resolved===entry||resolved.startsWith(nodeRoot+path.sep)||resolved.startsWith(path.dirname(entry)+path.sep);

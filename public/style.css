@@ -140,3 +140,7 @@ button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);bor
 @media(max-width:600px),(max-height:650px){.ask-me-character{width:150px;height:150px;flex-basis:150px}.ask-me-panel{right:12px;bottom:65px;max-height:calc(100dvh - 75px)}.ask-me-messages{max-height:160px}}
 @media print{.ask-me-panel{display:none!important}}
 @media(max-width:640px){.agent-dialog .agent-stage img{width:150px;height:190px}.agent-dialog .agent-stage{min-height:125px}.agent-dialog #ai-form{padding:11px}}
+
+.ask-me-credit{pointer-events:auto;font-size:9px;color:var(--muted);background:var(--panel);padding:2px 6px;border-radius:4px;margin:0 0 4px;text-decoration:none}
+.ask-me-character[aria-busy="true"]{position:relative}
+.ask-me-character[aria-busy="true"]::after{content:"Loading 3D…";position:absolute;bottom:12px;right:24px;font-size:11px;background:var(--panel);border-radius:6px;padding:6px}
