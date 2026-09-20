@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {blank,project,applyOperation} from '../lib/domain.js';
-import {permitted,providerStatus,meetingURL,generateAI,sendEmail,sendWhatsApp} from '../lib/providers.js';
+import {resolveAITool,permitted,providerStatus,meetingURL,generateAI,sendEmail,sendWhatsApp} from '../lib/providers.js';
 import {integrationAction,aggregateContext} from '../lib/integration-actions.js';
 const owner={id:'t1',role:'teacher',active:true,data:{name:'Teacher',features:{ai:true,email:true,push:true,online:true,ai_grading:false},studentLimit:10}};
 function ctx(role='teacher'){const p=role==='teacher'?structuredClone(owner):{id:role==='admin'?'a1':'s1',role,teacher_id:role==='student'?'t1':null,active:true,data:{batchIds:['b1']}};return {p,owner:role==='admin'?'a1':'t1',profiles:[structuredClone(owner),p],db:blank(),platform:{}};}
@@ -48,3 +48,16 @@ test('teachers cannot change individual student AI access',async()=>{await asser
 test('repeated notification request is rejected before sending again',async()=>{const c=ctx();c.profiles.push({id:'s1',role:'student',teacher_id:'t1',active:true});const id='00000000-0000-0000-0000-000000000001';c.db.deliveryLog=[{id}];await assert.rejects(integrationAction(c,'notify',{channel:'email',recipientId:'s1',subject:'Title',text:'Body',requestId:id},{}),/already been submitted/);});
 
 test('API connection status is Super Admin only, including direct requests',async()=>{for(const role of ['teacher','student'])await assert.rejects(integrationAction(ctx(role),'integration-status',{},{}),e=>e.status===403);const result=await integrationAction(ctx('admin'),'integration-status',{},{});assert.ok(result.status);});
+
+test('all character agents resolve to connected tools without bypassing role or feature permissions',async()=>{
+ assert.equal(resolveAITool('agent-appDoctor','admin').tool,'support');
+ assert.equal(resolveAITool('agent-communication','teacher').tool,'guardian');
+ assert.equal(resolveAITool('agent-tutor','student').tool,'tutor');
+ assert.equal(resolveAITool('agent-help','student').tool,'tutor');
+ for(const id of ['agent-appDoctor','agent-communication','agent-unknown'])
+  await assert.rejects(integrationAction(ctx('student'),'ai-run',{tool:id,prompt:'Help me'},{}),/disabled/);
+ const c=ctx();c.profiles[0].data.features.ai_guardian=false;
+ await assert.rejects(integrationAction(c,'ai-run',{tool:'agent-communication',prompt:'Write a notice'},{}),/disabled/);
+ const student=ctx('student');student.profiles[0].data.features.studentAI=false;
+ await assert.rejects(integrationAction(student,'ai-run',{tool:'agent-help',prompt:'Help me'},{}),/disabled/);
+});

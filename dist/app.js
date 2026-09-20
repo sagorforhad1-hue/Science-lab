@@ -393,17 +393,23 @@ async function openAssistant(tool){
  if(profile){
   const permitted=profile.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher');if(!permitted){toast(bilingual('This agent is not available for this account.','এই account-এর জন্য agentটি চালু নেই।'),true);return;}
  }
- const title=profile?bilingual('Ask Me','আমাকে জিজ্ঞেস করো'):toolLabel(tool);
+ const title=profile?bilingual(...profile.name):toolLabel(tool);
  modal(title,(profile?'<div class="agent-stage"><img src="'+profile.image+'" alt="'+esc(title)+' reference character"><div><strong>'+esc(bilingual(...profile.role))+'</strong><small>'+bilingual('Reference character · 3D model asset slot','Reference character · 3D model asset slot')+'</small></div></div><div id="agent-inbox" class="agent-inbox" aria-live="polite"><div class="agent-empty">'+bilingual('Ask me about this app.','এই app সম্পর্কে আমাকে জিজ্ঞেস করো।')+'</div></div>':'')+'<form id="ai-form">'+field('prompt',profile?bilingual('Write a message','মেসেজ লিখুন'):bilingual('Topic, question, answer or instructions','বিষয়, প্রশ্ন, উত্তর বা নির্দেশনা'),'textarea','',[],true,true)+'<p class="hint">'+bilingual('For grading, include the answer, rubric and maximum marks. Avoid passwords and private contact details.','মূল্যায়নের জন্য উত্তর, মূল্যায়নের নিয়ম ও মোট নম্বর দাও। পাসওয়ার্ড বা ব্যক্তিগত যোগাযোগের তথ্য দেবে না।')+'</p><button class="btn primary" type="submit">'+(profile?bilingual('Send','পাঠাও'):bilingual('Generate draft','খসড়া তৈরি'))+'</button><div id="ai-error" class="error" role="alert"></div></form><pre class="ai-output" id="ai-result" aria-live="polite"></pre><button hidden class="btn" id="ai-copy">'+bilingual('Copy draft','খসড়া কপি')+'</button>',btn('Close','close'),true);
  if(profile){const d=$('dialog');if(d){d.classList.add('agent-dialog');d.querySelector('.modal-header')?.classList.add('agent-dialog-header');}}
- $('#ai-form').onsubmit=async ev=>{
-  ev.preventDefault();const f=ev.currentTarget,b=f.querySelector('button');b.disabled=true;$('#ai-error').textContent='';$('#ai-result').textContent=bilingual('Working…','তৈরি হচ্ছে…');
+ const form=$('#ai-form'),output=$('#ai-result'),errorBox=$('#ai-error'),inbox=$('#agent-inbox'),copy=$('#ai-copy'),history=[];
+ function agentBubble(text,mine=false){const p=document.createElement('div');p.className='agent-bubble'+(mine?' mine':'');p.textContent=text;inbox.querySelector('.agent-empty')?.remove();inbox.append(p);inbox.scrollTop=inbox.scrollHeight;}
+ form.onsubmit=async ev=>{
+  ev.preventDefault();const f=ev.currentTarget,b=f.querySelector('button'),prompt=f.elements.prompt.value.trim();if(b.disabled||!prompt)return;b.disabled=true;errorBox.textContent='';output.textContent=bilingual('Working…','তৈরি হচ্ছে…');
+  if(profile)agentBubble(prompt,true);
   try{
    let result;
    if(session.demo){result={text:bilingual('DEMO SAMPLE — This is not an AI response.\n\n1. Define the learning objective.\n2. Review the supplied work and evidence.\n3. Write feedback and next steps.\n\nLog in to a real account to generate your requested draft.','ডেমো নমুনা—এটি AI-এর উত্তর নয়।\n\n১. শেখার লক্ষ্য ঠিক করো।\n২. উত্তর ও প্রমাণ যাচাই করো।\n৩. মতামত ও পরের ধাপ লেখো।\n\nনিজের অ্যাকাউন্টে লগইন করলে আসল খসড়া তৈরি হবে।')};}
-   else {await cloud.flush();result=await cloud.request('ai-run',{tool,prompt:f.elements.prompt.value,language:db.settings.language});}
-   if(!$('#ai-result'))return;$('#ai-result').textContent=result.text;if(profile&&$('#agent-inbox')){$('#agent-inbox').innerHTML='<div class="agent-bubble mine">'+esc(f.elements.prompt.value)+'</div><div class="agent-bubble">'+esc(result.text)+'</div>';f.elements.prompt.value='';}$('#ai-copy').hidden=false;$('#ai-copy').onclick=async()=>{try{await navigator.clipboard.writeText(result.text);toast(bilingual('Copied','কপি হয়েছে'));}catch{toast(bilingual('Select the draft and copy it.','খসড়া নির্বাচন করে কপি করো।'),true);}};
-  }catch(err){if($('#ai-error')){$('#ai-error').textContent=err.message;$('#ai-result').textContent='';}}finally{b.disabled=false;}
+   else {await cloud.flush();result=await cloud.request('ai-run',{tool,prompt:(profile?'Conversation so far:\n'+history.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt:prompt).slice(-12000),language:db.settings.language});}
+   if(!form.isConnected)return;
+   if(profile){output.textContent='';agentBubble(result.text);history.push({role:'user',text:prompt},{role:'assistant',text:result.text});f.elements.prompt.value='';}
+   else output.textContent=result.text;
+   copy.hidden=false;copy.onclick=async()=>{try{await navigator.clipboard.writeText(result.text);toast(bilingual('Copied','কপি হয়েছে'));}catch{toast(bilingual('Select the draft and copy it.','খসড়া নির্বাচন করে কপি করো।'),true);}};
+  }catch(err){if(form.isConnected){errorBox.textContent=err.message;output.textContent='';}}finally{b.disabled=false;}
  };
 }
 function connectionsPage(){
