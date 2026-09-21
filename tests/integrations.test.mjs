@@ -50,6 +50,8 @@ test('repeated notification request is rejected before sending again',async()=>{
 test('API connection status is Super Admin only, including direct requests',async()=>{for(const role of ['teacher','student'])await assert.rejects(integrationAction(ctx(role),'integration-status',{},{}),e=>e.status===403);const result=await integrationAction(ctx('admin'),'integration-status',{},{});assert.ok(result.status);});
 
 test('all character agents resolve to connected tools without bypassing role or feature permissions',async()=>{
+ const disabled=ctx();disabled.profiles[0].data.features.ai_agent_help=false;
+ await assert.rejects(integrationAction(disabled,'ai-run',{tool:'agent-help',prompt:'Help me'},{}),/disabled/);
  assert.equal(resolveAITool('agent-appDoctor','admin').tool,'support');
  assert.equal(resolveAITool('agent-communication','teacher').tool,'guardian');
  assert.equal(resolveAITool('agent-tutor','student').tool,'tutor');

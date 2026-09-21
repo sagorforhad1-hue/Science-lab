@@ -363,12 +363,12 @@ const serviceLabels={ai:['AI Studio','এআই স্টুডিও'],email:['
 const aiLabels={quiz:['Quiz assistant','কুইজ সহকারী'],grading:['Grading assistant','মূল্যায়ন সহকারী'],insights:['Learning insights','শেখার বিশ্লেষণ'],guardian:['Guardian summary','অভিভাবকের সারাংশ'],tutor:['Study tutor','পড়াশোনার সহকারী'],operations:['Admin operations','অ্যাডমিনের কাজের সহকারী'],billing:['Billing analyst','বিলিং বিশ্লেষক'],announcement:['Announcement writer','নোটিশ লেখক'],support:['Support assistant','সাপোর্ট সহকারী']};
 const toolLabel=k=>bilingual(...aiLabels[k]);
 const agentProfiles=Object.freeze({
- appDoctor:{name:['App Doctor','অ্যাপ ডাক্তার'],role:['System health and real incident analysis','সিস্টেম health ও বাস্তব সমস্যা বিশ্লেষণ'],image:'/agents/app-doctor.png',access:['admin'],asset:'3D asset slot'},
- communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication.png',access:['admin','teacher'],asset:'3D asset slot'},
- tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student.png',access:['teacher','student'],asset:'3D asset slot'},
- help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help.png',access:['admin','teacher','student'],asset:'3D asset slot'}
+ appDoctor:{name:['App Doctor','অ্যাপ ডাক্তার'],role:['System health and real incident analysis','সিস্টেম health ও বাস্তব সমস্যা বিশ্লেষণ'],image:'/agents/app-doctor.png',access:['admin'],asset:'Admin-only diagnostics'},
+ communication:{name:['Communication agent','যোগাযোগ সহকারী'],role:['Notice drafts and delivery review','নোটিশ draft ও delivery review'],image:'/agents/communication.png',access:['admin','teacher'],asset:'Drafts only · review before send'},
+ tutor:{name:['Study assistant','পড়াশোনার সহকারী'],role:['Explain topics and guide practice','বিষয় বোঝানো ও practice guidance'],image:'/agents/student.png',access:['teacher','student'],asset:'Guided study help'},
+ help:{name:['App guide','অ্যাপ গাইড'],role:['Explain only the features this account can use','এই account-এর ব্যবহারযোগ্য feature বোঝায়'],image:'/agents/help.png',access:['admin','teacher','student'],asset:'Account-aware help'}
 });
-const visibleAgentProfiles=()=>Object.entries(agentProfiles).filter(([,p])=>p.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher'));
+const visibleAgentProfiles=()=>Object.entries(agentProfiles).filter(([key,p])=>p.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher')&&(isAdmin()||teacher()?.features?.['ai_agent_'+key]!==false&&teacher()?.features?.['ai_'+(key==='communication'?'guardian':'tutor')]!==false));
 let connectedStatus=null;
 const priorAllowed=allowed;
 allowed=function(p){
@@ -385,27 +385,30 @@ aiPage=function(){
  const tools=isAdmin()?Object.keys(aiLabels):isStudent()?['tutor']:['quiz','grading','insights','guardian','tutor'];
  return heading('AI Studio',bilingual('Choose an assistant. Review its draft before use.','সহকারী বেছে নাও। ব্যবহারের আগে ফলাফল যাচাই করো।'),(isAdmin()?btn('API connections','go:connections','','settings'):''))+
  '<div class="hint">'+(session.demo?bilingual('Demo uses sample previews. Log in to a real account to use the connected AI.','ডেমোতে নমুনা preview দেখাবে। আসল AI ব্যবহার করতে নিজের অ্যাকাউন্টে লগইন করো।'):bilingual('AI creates drafts; it never changes marks, permissions or sends messages automatically. Only aggregate records are included automatically.','AI খসড়া তৈরি করে; নিজে নম্বর, অনুমতি বদলায় না বা মেসেজ পাঠায় না। স্বয়ংক্রিয়ভাবে শুধু সারসংক্ষেপ তথ্য যুক্ত হয়।'))+'</div><div class="cards">'+tools.filter(k=>isAdmin()||teacher()?.features?.['ai_'+k]!==false).map(k=>'<article class="card"><span class="subject-symbol">'+icon('ai')+'</span><h3>'+esc(toolLabel(k))+'</h3><p>'+esc(bilingual('Add your instructions and generate a draft.','তোমার নির্দেশনা দিয়ে খসড়া তৈরি করো।'))+'</p>'+btn(bilingual('Open assistant','সহকারী খোলো'),'connected-ai:'+k,'primary small')+'</article>').join('')+'</div>'+
- '<section class="agent-directory"><div class="section-heading"><div><h2>'+bilingual('Character agents','ক্যারেক্টার agent')+'</h2><p class="subtitle">'+bilingual('Each character has a role and permission boundary. 3D assets will load in this slot when supplied.','প্রতিটি character-এর role ও permission আলাদা। 3D asset দিলে এই slot-এ যুক্ত হবে।')+'</p></div></div><div class="cards">'+visibleAgentProfiles().map(([k,p])=>'<article class="card agent-card"><div class="agent-thumb"><img src="'+p.image+'" alt="'+esc(bilingual(...p.name))+' reference character"><span>'+esc(p.asset)+'</span></div><h3>'+esc(bilingual(...p.name))+'</h3><p>'+esc(bilingual(...p.role))+'</p>'+btn(bilingual('Open agent','agent খোলো'),'connected-ai:agent-'+k,'primary small')+'</article>').join('')+'</div></section>';
+ '<section class="agent-directory"><div class="section-heading"><div><h2>'+bilingual('Character agents','ক্যারেক্টার agent')+'</h2><p class="subtitle">'+bilingual('Each assistant has a clear role and account permission. Review drafts before taking action.','প্রতিটি assistant-এর role ও account permission আলাদা। কোনো action নেওয়ার আগে draft যাচাই করো।')+'</p></div></div><div class="cards">'+visibleAgentProfiles().map(([k,p])=>'<article class="card agent-card"><div class="agent-thumb"><img src="'+p.image+'" alt="'+esc(bilingual(...p.name))+' character"><span>'+esc(p.asset)+'</span></div><h3>'+esc(bilingual(...p.name))+'</h3><p>'+esc(bilingual(...p.role))+'</p>'+btn(bilingual('Open agent','agent খোলো'),'connected-ai:agent-'+k,'primary small')+'</article>').join('')+'</div></section>';
 };
 async function openAssistant(tool){
  if(tool==='agent-askMe'){openAskMe();return;}
  const agentKey=tool.startsWith('agent-')?tool.slice(6):'';const profile=agentProfiles[agentKey];
  if(profile){
-  const permitted=profile.access.includes(isAdmin()?'admin':isStudent()?'student':'teacher');if(!permitted){toast(bilingual('This agent is not available for this account.','এই account-এর জন্য agentটি চালু নেই।'),true);return;}
+  const permitted=visibleAgentProfiles().some(([key])=>key===agentKey);if(!permitted){toast(bilingual('This agent is not available for this account.','এই account-এর জন্য agentটি চালু নেই।'),true);return;}
  }
  const title=profile?bilingual(...profile.name):toolLabel(tool);
  modal(title,(profile?'<div class="agent-stage"><img src="'+profile.image+'" alt="'+esc(title)+' reference character"><div><strong>'+esc(bilingual(...profile.role))+'</strong><small>'+bilingual('Reference character · 3D model asset slot','Reference character · 3D model asset slot')+'</small></div></div><div id="agent-inbox" class="agent-inbox" aria-live="polite"><div class="agent-empty">'+bilingual('Ask me about this app.','এই app সম্পর্কে আমাকে জিজ্ঞেস করো।')+'</div></div>':'')+'<form id="ai-form">'+field('prompt',profile?bilingual('Write a message','মেসেজ লিখুন'):bilingual('Topic, question, answer or instructions','বিষয়, প্রশ্ন, উত্তর বা নির্দেশনা'),'textarea','',[],true,true)+'<p class="hint">'+bilingual('For grading, include the answer, rubric and maximum marks. Avoid passwords and private contact details.','মূল্যায়নের জন্য উত্তর, মূল্যায়নের নিয়ম ও মোট নম্বর দাও। পাসওয়ার্ড বা ব্যক্তিগত যোগাযোগের তথ্য দেবে না।')+'</p><button class="btn primary" type="submit">'+(profile?bilingual('Send','পাঠাও'):bilingual('Generate draft','খসড়া তৈরি'))+'</button><div id="ai-error" class="error" role="alert"></div></form><pre class="ai-output" id="ai-result" aria-live="polite"></pre><button hidden class="btn" id="ai-copy">'+bilingual('Copy draft','খসড়া কপি')+'</button>',btn('Close','close'),true);
  if(profile){const d=$('dialog');if(d){d.classList.add('agent-dialog');d.querySelector('.modal-header')?.classList.add('agent-dialog-header');}}
  const form=$('#ai-form'),output=$('#ai-result'),errorBox=$('#ai-error'),inbox=$('#agent-inbox'),copy=$('#ai-copy'),history=[];
+ const attachments=attachAIComposer(form);
+ if(profile){form.elements.prompt.rows=2;form.elements.prompt.maxLength=3000;const clear=document.createElement('button');clear.type='button';clear.className='btn small';clear.textContent=bilingual('Clear chat','চ্যাট মুছো');clear.onclick=()=>{if(form.querySelector('[type=submit]').disabled)return;history.length=0;inbox.replaceChildren();output.textContent='';errorBox.textContent='';attachments.clear();copy.hidden=true;};$('dialog .modal-actions')?.prepend(clear);}
  function agentBubble(text,mine=false){const p=document.createElement('div');p.className='agent-bubble'+(mine?' mine':'');p.textContent=text;inbox.querySelector('.agent-empty')?.remove();inbox.append(p);inbox.scrollTop=inbox.scrollHeight;}
  form.onsubmit=async ev=>{
   ev.preventDefault();const f=ev.currentTarget,b=f.querySelector('button'),prompt=f.elements.prompt.value.trim();if(b.disabled||!prompt)return;b.disabled=true;errorBox.textContent='';output.textContent=bilingual('Working…','তৈরি হচ্ছে…');
   if(profile)agentBubble(prompt,true);
   try{
-   let result;
+   const files=await attachments.prepare();let result;
    if(session.demo){result={text:bilingual('DEMO SAMPLE — This is not an AI response.\n\n1. Define the learning objective.\n2. Review the supplied work and evidence.\n3. Write feedback and next steps.\n\nLog in to a real account to generate your requested draft.','ডেমো নমুনা—এটি AI-এর উত্তর নয়।\n\n১. শেখার লক্ষ্য ঠিক করো।\n২. উত্তর ও প্রমাণ যাচাই করো।\n৩. মতামত ও পরের ধাপ লেখো।\n\nনিজের অ্যাকাউন্টে লগইন করলে আসল খসড়া তৈরি হবে।')};}
-   else {await cloud.flush();result=await cloud.request('ai-run',{tool,prompt:(profile?'Conversation so far:\n'+history.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt:prompt).slice(-12000),language:db.settings.language});}
+   else {await cloud.flush();result=await cloud.request('ai-run',{tool,prompt:(profile?'Conversation so far:\n'+history.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt:prompt).slice(-12000),language:db.settings.language,attachments:files});}
    if(!form.isConnected)return;
+   attachments.clear();
    if(profile){output.textContent='';agentBubble(result.text);history.push({role:'user',text:prompt},{role:'assistant',text:result.text});f.elements.prompt.value='';}
    else output.textContent=result.text;
    copy.hidden=false;copy.onclick=async()=>{try{await navigator.clipboard.writeText(result.text);toast(bilingual('Copied','কপি হয়েছে'));}catch{toast(bilingual('Select the draft and copy it.','খসড়া নির্বাচন করে কপি করো।'),true);}};
@@ -463,9 +466,12 @@ featureAction=async function(action){
 };
 teacherFeatures=function(id){
  if(!isAdmin())return;const r=db.teachers.find(x=>x.id===id);if(!r)return;
- const modules={students:'Students',batches:'Batches',attendance:'Attendance',assignments:'Assignments',materials:'Materials',exams:'Exams',quizzes:'Quizzes',routine:'Routine',notices:'Notices',messages:'Messages',calendar:'Calendar',fees:'Fees',analytics:'Analytics',guardians:'Guardians',ai:'AI Studio',email:'Email',push:'Push notifications',whatsapp:'WhatsApp',online:'Online classes',studentAI:'Student study tutor',...Object.fromEntries(['quiz','grading','insights','guardian','tutor'].map(k=>['ai_'+k,toolLabel(k)]))};
+ const modules={students:'Students',batches:'Batches',attendance:'Attendance',assignments:'Assignments',materials:'Materials',exams:'Exams',quizzes:'Quizzes',routine:'Routine',notices:'Notices',messages:'Messages',calendar:'Calendar',fees:'Fees',analytics:'Analytics',guardians:'Guardians',ai:'AI Studio',email:'Email',push:'Push notifications',whatsapp:'WhatsApp',online:'Online classes',studentAI:'Student study tutor',...Object.fromEntries(['quiz','grading','insights','guardian','tutor'].map(k=>['ai_'+k,toolLabel(k)])),...Object.fromEntries(['communication','tutor','help'].map(k=>['ai_agent_'+k,bilingual(...agentProfiles[k].name)]))};
  modal('Features','<p>'+esc(r.name)+'</p><form id="features-form">'+Object.entries(modules).map(([k,label])=>'<label class="switch-row"><span>'+e(label)+'</span><input class="switch" type="checkbox" name="'+k+'" '+((r.features?.[k]??(!['email','push','whatsapp','online','studentAI'].includes(k)))?'checked':'')+'></label>').join('')+'<div class="form-grid">'+field('studentLimit','Student limit','number',r.studentLimit,[],true)+field('batchLimit','Batch limit','number',r.batchLimit,[],true)+field('storageLimit','Storage limit (MB)','number',r.storageLimit,[],true)+field('aiDailyLimit',bilingual('Daily AI limit','দৈনিক AI সীমা'),'number',r.aiDailyLimit??30,[],true)+'</div><button class="btn primary" type="submit">'+e('Save changes')+'</button></form>',btn('Close','close'),true);
- $('#features-form').onsubmit=ev=>{ev.preventDefault();const before=structuredClone(r),f=ev.currentTarget;const nums=Object.fromEntries(['studentLimit','batchLimit','storageLimit','aiDailyLimit'].map(k=>[k,Number(f.elements[k].value)]));if(Object.values(nums).some(n=>!Number.isInteger(n)||n<0)||nums.aiDailyLimit<0){toast('Enter valid nonnegative limits.',true);return;}r.features=Object.fromEntries(Object.keys(modules).map(k=>[k,f.elements[k].checked]));Object.assign(r,nums);save('Edit','teachers',id,before);closeModal();render();toast(t('Saved successfully'));};
+ $('#features-form').onsubmit=async ev=>{ev.preventDefault();const before=structuredClone(r),f=ev.currentTarget,button=f.querySelector('[type=submit]');if(button.disabled)return;const nums=Object.fromEntries(['studentLimit','batchLimit','storageLimit','aiDailyLimit'].map(k=>[k,Number(f.elements[k].value)]));if(Object.values(nums).some(n=>!Number.isInteger(n)||n<0)||nums.aiDailyLimit>500){toast('Enter valid limits. AI requests must be 0–500.',true);return;}
+  button.disabled=true;const after={...before,...nums,features:{...before.features,...Object.fromEntries(Object.keys(modules).map(k=>[k,f.elements[k].checked]))}};
+  try{if(session.demo){Object.assign(r,after);save('Edit','teachers',id,before);}else{await cloud.flush();await cloud.request('mutate',{ops:[{entity:'teachers',id,before,after}]});await refreshCloud();}closeModal();render();toast(t('Saved successfully'));}catch(err){toast(err.message,true);}finally{button.disabled=false;}
+ };
 
 };
 
@@ -626,7 +632,11 @@ const upgradesAction=featureAction;
 featureAction=async function(action){
  const [a,b]=action.split(':');
  if(a==='impersonate'&&!session.demo){try{await acceptCloud(await cloud.viewTeacher(b));}catch(err){await cloud.viewTeacher(null);toast(err.message,true);}return;}
- if(a==='return-admin'&&!session.demo){await acceptCloud(await cloud.viewTeacher(null));return;}
+ if(a==='return-admin'&&session?.impersonating){
+  try{if(session.demo){closeModal();setSession({role:'admin',id:'admin',teacherId:null,demo:true});}else await acceptCloud(await cloud.viewTeacher(null));}
+  catch(err){toast(bilingual('Could not exit preview. Try Exit view again. ','Preview থেকে বের হওয়া যায়নি। আবার ফিরে যাও চাপো। ')+err.message,true);}
+  return;
+ }
  if(a==='service-refresh'&&isAdmin()&&!session.demo){try{toast(bilingual('Checking providers…','Provider যাচাই চলছে…'));const r=await cloud.request('provider-check',{});await loadConnections();modal(bilingual('Live provider checks','লাইভ provider পরীক্ষা'),Object.entries(r).map(([key,value])=>'<div class="switch-row"><b>'+esc(key)+'</b><span>'+esc(value)+'</span></div>').join(''),btn('Close','close'));}catch(err){toast(err.message,true);}return;}
  if(a==='identity'){editIdentity(b);return;}
  if(a==='usage-limit'){limitForm(b);return;}
@@ -639,7 +649,7 @@ document.addEventListener('submit',ev=>{if(session?.impersonating){ev.preventDef
 document.addEventListener('click',ev=>{
  if(!session?.impersonating)return;const el=ev.target.closest('[data-action]');if(!el)return;
  const a=el.dataset.action.split(':')[0];
- if(!['return-admin','close','go','search','notifications','menu','profile','detail','assignment','exam','file','att-history','combined-report','batch-tab','pulse-result','attendance-detail','activity-detail','schedule-detail'].includes(a)){ev.preventDefault();ev.stopImmediatePropagation();toast(bilingual('Read-only preview. Exit to edit.','শুধু দেখার মোড। সম্পাদনা করতে বের হও।'),true);}
+ if(!['edit-viewed-teacher','back','return-admin','close','go','search','notifications','menu','profile','detail','assignment','exam','file','att-history','combined-report','batch-tab','pulse-result','attendance-detail','activity-detail','schedule-detail'].includes(a)){ev.preventDefault();ev.stopImmediatePropagation();toast(bilingual('Read-only preview. Exit to edit.','শুধু দেখার মোড। সম্পাদনা করতে বের হও।'),true);}
 },true);
 const upgradesNotifications=notificationsModal;
 notificationsModal=function(){upgradesNotifications();const el=$('.modal-body');if(el&&usageLoaded&&usageOwner===session?.id){el.insertAdjacentHTML('afterbegin',usageAccounts.filter(r=>r.alert).map(r=>'<p class="hint warning">'+esc(r.name)+' · '+num(r.alert)+'% '+bilingual('AI request limit reached','AI request সীমায় পৌঁছেছে')+'</p>').join(''));}};
@@ -672,26 +682,76 @@ async function openAskMe(){
  if(!session||!allowed('ai')||session.impersonating)return;
  if(askMeCleanup){askMeCleanup();return;}
  const owner=currentUser(),panel=document.createElement('section');panel.className='ask-me-panel';panel.setAttribute('aria-label','Ask Me');
- panel.innerHTML='<div class="ask-me-character" aria-busy="true"></div><a class="ask-me-credit" href="https://github.com/vrm-c/vrm-specification/tree/master/samples/Seed-san" target="_blank" rel="noopener noreferrer">Seed-san © VirtualCast</a><div class="ask-me-chat"><header><strong>Ask Me</strong><button type="button" class="icon-button ask-me-close" aria-label="'+e('Close')+'">'+icon('close')+'</button></header><p class="ask-me-status" role="status">'+bilingual('Ask a question. I’m listening.','প্রশ্ন করো, আমি শুনছি।')+'</p><div class="ask-me-messages" role="log" aria-live="polite"></div><form><label class="sr-only" for="ask-me-input">'+bilingual('Message','মেসেজ')+'</label><textarea id="ask-me-input" required maxlength="3000" rows="2" placeholder="'+bilingual('Write a message…','মেসেজ লিখুন…')+'"></textarea><button class="btn primary" type="submit">'+bilingual('Send','পাঠাও')+'</button></form></div>';
- document.body.append(panel);let model,closed=false,replyTimer;const messages=[],feed=panel.querySelector('[role=log]'),status=panel.querySelector('[role=status]'),form=panel.querySelector('form');
- const cleanup=()=>{closed=true;clearTimeout(replyTimer);model?.dispose();panel.remove();observer.disconnect();document.removeEventListener('keydown',escape);askMeCleanup=null;$('#chatbot-launch')?.focus();};
+ panel.innerHTML='<div class="ask-me-character" aria-busy="true"></div><a class="ask-me-credit" href="https://github.com/vrm-c/vrm-specification/tree/master/samples/Seed-san" target="_blank" rel="noopener noreferrer">Seed-san © VirtualCast</a><div class="ask-me-motion"><button type="button" data-motion="walk">Walk · হাঁটো</button><button type="button" data-motion="dance">Dance · নাচো</button><button type="button" data-motion="idle">Stop · থামো</button></div><div class="ask-me-chat"><header><strong>Ask Me</strong><button type="button" class="icon-button ask-me-close" aria-label="'+e('Close')+'">'+icon('close')+'</button></header><p class="ask-me-status" role="status">'+bilingual('Ask a question. I’m listening.','প্রশ্ন করো, আমি শুনছি।')+'</p><div class="ask-me-messages" role="log" aria-live="polite"></div><form><label class="sr-only" for="ask-me-input">'+bilingual('Message','মেসেজ')+'</label><textarea id="ask-me-input" required maxlength="3000" rows="2" placeholder="'+bilingual('Write a message…','মেসেজ লিখুন…')+'"></textarea><button class="btn primary" type="submit">'+bilingual('Send','পাঠাও')+'</button></form></div>';
+ const backdrop=document.createElement('div');backdrop.className='ask-me-backdrop';document.body.append(backdrop,panel);panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');const app=$('#app'),wasInert=app.inert;app.inert=true;
+ let model,closed=false,replyTimer;const messages=[],feed=panel.querySelector('[role=log]'),status=panel.querySelector('[role=status]'),form=panel.querySelector('form'),attachments=attachAIComposer(form);
+ const cleanup=()=>{closed=true;clearTimeout(replyTimer);model?.dispose();panel.remove();backdrop.remove();app.inert=wasInert;observer.disconnect();document.removeEventListener('keydown',escape);askMeCleanup=null;$('#chatbot-launch')?.focus();};
  const escape=e=>{if(e.key==='Escape')cleanup();};
  const observer=new MutationObserver(()=>{if(!session||currentUser()!==owner||!allowed('ai')||session.impersonating)cleanup();});observer.observe($('#app'),{childList:true,subtree:true});
+ panel.querySelectorAll('[data-motion]').forEach(button=>{button.disabled=true;button.onclick=()=>{model?.setMotion(button.dataset.motion);panel.querySelectorAll('[data-motion]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));};});
  askMeCleanup=cleanup;panel.querySelector('.ask-me-close').onclick=cleanup;document.addEventListener('keydown',escape);
  function bubble(text,mine=false){const p=document.createElement('p');p.className='ask-me-bubble'+(mine?' mine':'');p.textContent=text;feed.append(p);feed.scrollTop=feed.scrollHeight;return p;}
  form.onsubmit=async ev=>{
   ev.preventDefault();const input=form.querySelector('textarea'),button=form.querySelector('button'),prompt=input.value.trim();if(!prompt||button.disabled)return;
   clearTimeout(replyTimer);bubble(prompt,true);input.value='';button.disabled=true;model?.setState('thinking');status.textContent=bilingual('Thinking…','ভাবছি…');
   try{
-   let text;if(session.demo)text=bilingual('Demo mode: sign in to your real account for an AI reply.','ডেমো মোড: AI-এর উত্তর পেতে আসল অ্যাকাউন্টে লগইন করো।');
-   else{await cloud.flush();const result=await cloud.request('ai-run',{tool:isAdmin()?'support':'tutor',language:db.settings.language,prompt:('Conversation so far:\n'+messages.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt).slice(-12000)});text=result.text;}
+   const files=await attachments.prepare();let text;if(session.demo)text=bilingual('Demo mode: sign in to your real account for an AI reply.','ডেমো মোড: AI-এর উত্তর পেতে আসল অ্যাকাউন্টে লগইন করো।');
+   else{await cloud.flush();const result=await cloud.request('ai-run',{tool:isAdmin()?'support':'tutor',language:db.settings.language,attachments:files,prompt:('Conversation so far:\n'+messages.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt).slice(-12000)});text=result.text;}
+   if(!closed)attachments.clear();
    if(closed)return;messages.push({role:'user',text:prompt},{role:'assistant',text});bubble(text);model?.setState('replying');status.textContent=bilingual('Reply ready','উত্তর এসেছে');replyTimer=setTimeout(()=>model?.setState('idle'),3500);
   }catch(err){if(!closed){bubble(err.message);status.textContent=bilingual('Could not get a reply. Try again.','উত্তর আসেনি। আবার চেষ্টা করো।');model?.setState('idle');input.value=prompt;}}
   finally{button.disabled=false;if(!closed)input.focus();}
  };
  form.querySelector('textarea').focus();
- try{const {mountCharacter}=await import('./ask-me-model.js');if(!closed){const host=panel.querySelector('.ask-me-character');model=mountCharacter(host,matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.classList.contains('no-motion'));await model.ready;if(!closed)host.setAttribute('aria-busy','false');}}
+ try{const {mountCharacter}=await import('./ask-me-model.js');if(!closed){const host=panel.querySelector('.ask-me-character');model=mountCharacter(host,matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.classList.contains('no-motion'));await model.ready;if(!closed){host.setAttribute('aria-busy','false');const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.classList.contains('no-motion');panel.querySelectorAll('[data-motion]').forEach(b=>{b.disabled=reduced;b.title=reduced?bilingual('Animations are disabled in motion settings','Motion settings-এ animation বন্ধ আছে'):'';});}}}
  catch{model?.dispose();if(!closed){panel.querySelector('.ask-me-character').setAttribute('aria-busy','false');panel.querySelector('.ask-me-character').textContent=bilingual('3D is unavailable on this device. Chat is still available.','এই ডিভাইসে 3D চলছে না। চ্যাট ব্যবহার করতে পারো।');}}
 }
+
+// Attachments are kept in memory and sent only with the user's Send action.
+function attachAIComposer(form){
+ const box=document.createElement('div');box.className='ai-attachments';
+ box.innerHTML='<label class="ai-file-label">'+bilingual('Attach photo or file','ছবি বা ফাইল যুক্ত করো')+'<input type="file" multiple accept="image/jpeg,image/png,image/webp,.txt,.csv,.pdf" aria-label="'+bilingual('Attach photo or file','ছবি বা ফাইল যুক্ত করো')+'"></label><div class="ai-file-list" aria-live="polite"></div><small>'+bilingual('JPG, PNG, WebP, PDF, TXT, CSV · up to 3 files, 4 MB each. Sent to AI when you press Send.','JPG, PNG, WebP, PDF, TXT, CSV · সর্বোচ্চ ৩টি, প্রতিটি ৪ MB। Send চাপলে AI-তে যাবে।')+'</small>';
+ form.append(box);let selected=[];const input=box.querySelector('input'),list=box.querySelector('.ai-file-list');
+ function draw(){list.replaceChildren();selected.forEach((file,index)=>{const row=document.createElement('div');row.className='ai-file-chip';const name=document.createElement('span');name.textContent=file.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label',bilingual('Remove ','সরাও ')+file.name);remove.onclick=()=>{selected.splice(index,1);draw();};row.append(name,remove);list.append(row);});}
+ input.onchange=()=>{const incoming=[...input.files];input.value='';if(selected.length+incoming.length>3||incoming.some(f=>f.size>4*1048576)){toast(bilingual('Choose up to 3 files, each under 4 MB.','সর্বোচ্চ ৩টি ফাইল দাও, প্রতিটি ৪ MB-এর কম।'),true);return;}selected.push(...incoming);draw();};
+ return {clear(){selected=[];draw();},async prepare(){
+  const result=[];for(const file of selected){
+   if(['image/jpeg','image/png','image/webp'].includes(file.type)){
+    const bmp=await createImageBitmap(file),canvas=document.createElement('canvas'),scale=Math.min(1,1280/bmp.width,1280/bmp.height);
+    canvas.width=Math.max(1,Math.round(bmp.width*scale));canvas.height=Math.max(1,Math.round(bmp.height*scale));canvas.getContext('2d').drawImage(bmp,0,0,canvas.width,canvas.height);bmp.close();
+    let data=canvas.toDataURL('image/jpeg',.72);if(data.length>600000)data=canvas.toDataURL('image/jpeg',.4);
+    if(data.length>600000)throw Error(bilingual('This image is too detailed. Crop or resize it first.','ছবিটি crop বা ছোট করে দাও।'));
+    result.push({name:file.name,kind:'image',data});
+   }else if(/\.pdf$/i.test(file.name)){
+    const {readPDF}=await import('./ai-pdf.js');result.push({name:file.name,kind:'text',text:await readPDF(file)});
+   }else if(/\.(txt|csv)$/i.test(file.name)){
+    const text=await file.text();if(text.length>16000)throw Error(bilingual('Text files may contain at most 16,000 characters.','Text file সর্বোচ্চ ১৬,০০০ অক্ষর হতে পারবে।'));result.push({name:file.name,kind:'text',text});
+   }else throw Error(bilingual('Supported: JPG, PNG, WebP, PDF, TXT and CSV.','JPG, PNG, WebP, PDF, TXT এবং CSV দেওয়া যাবে।'));
+  }return result;
+ }};
+}
+
+// Management forms save explicitly so failures never look like successful edits.
+editIdentity=function(id){
+ const entity=db.teachers.some(x=>x.id===id)?'teachers':'students',record=db[entity].find(x=>x.id===id);
+ if(!record||session.impersonating)return;
+ if(entity==='teachers'&&!isAdmin()&&id!==session.id)return;
+ if(entity==='students'&&isStudent()&&id!==session.id)return;
+ const teacherProfile=entity==='teachers',keys=teacherProfile?['photoData','logoData','coverData']:['photoData',...(!isStudent()?['guardianPhotoData']:[])];
+ modal(bilingual('Profile & identity','প্রোফাইল ও পরিচিতি'),'<form id="identity-form"><div class="form-grid">'+field('name','Name','text',record.name,[],true)+(teacherProfile?field('coaching','Coaching name','text',record.coaching||'')+field('subject',bilingual('Subject','বিষয়'),'text',record.subject||''):'')+field('bio',bilingual('Bio','পরিচিতি'),'textarea',record.bio||'',[],false,true)+(isStudent()?field('interests',bilingual('Interests','আগ্রহ'),'text',record.interests||''):'')+keys.map(k=>'<label class="field"><span>'+({photoData:'Profile photo',logoData:'Coaching logo',coverData:'Cover photo',guardianPhotoData:'Guardian photo'}[k])+'</span><input type="file" name="'+k+'" accept="image/jpeg,image/png,image/webp"></label>'+check('remove_'+k,bilingual('Remove saved image','সংরক্ষিত ছবি সরাও'))).join('')+(teacherProfile?check('leaderboard',bilingual('Show performance leaderboard','ফলাফলের তালিকা দেখাও'),record.leaderboard):'')+'</div><p class="hint">'+bilingual('Photos are resized automatically. Maximum source size: 8 MB.','ছবি নিজে থেকেই ছোট হবে। মূল ছবি সর্বোচ্চ ৮ MB।')+'</p><p class="error" id="identity-error" role="alert"></p><button type="submit" class="btn primary">'+e('Save')+'</button></form>',btn('Close','close'));
+ const form=$('#identity-form'),error=$('#identity-error');form.onsubmit=async ev=>{ev.preventDefault();const button=form.querySelector('[type=submit]');if(button.disabled)return;button.disabled=true;
+  try{const after=structuredClone(record);for(const k of ['name','coaching','subject','bio','interests'])if(form.elements[k])after[k]=form.elements[k].value.trim();if(after.name.length<2||after.name.length>100)throw Error(bilingual('Name must be 2–100 characters.','নাম ২–১০০ অক্ষরের হতে হবে।'));if(teacherProfile)after.leaderboard=form.elements.leaderboard.checked;
+   for(const k of keys){if(form.elements['remove_'+k].checked)after[k]='';const image=await readProfileImage(form.elements[k]);if(image)after[k]=image;}
+   if(session.demo){Object.assign(record,after);persist(db);}else{await cloud.flush();await cloud.request('mutate',{ops:[{entity,id,before:record,after}]});await refreshCloud();}
+   closeModal();render();toast(bilingual('Profile saved.','প্রোফাইল সংরক্ষিত হয়েছে।'));
+  }catch(err){if(form.isConnected)error.textContent=err.message;}finally{button.disabled=false;}
+ };
+};
+const usabilityRender=render;
+render=function(){usabilityRender();if(session?.impersonating){$('.impersonation')?.insertAdjacentHTML('beforeend',btn(bilingual('Exit & edit teacher profile','বের হয়ে teacher-এর profile বদলাও'),'edit-viewed-teacher','small'));}};
+// This capture handler exits read-only preview before opening the admin edit form.
+document.addEventListener('click',async ev=>{const target=ev.target.closest('[data-action="edit-viewed-teacher"]');if(!target||!session?.impersonating)return;ev.preventDefault();const id=session.id;await featureAction('return-admin');if(isAdmin())editIdentity(id);},true);
+const baseExportEntity=exportEntity;
+exportEntity=function(entity){if(entity!=='students')return baseExportEntity(entity);const rows=isStudent()?[me()]:filtered(own('students'));download('students-'+today()+'.csv',csv([['ID','Name','Grade','Batches','Status'],...rows.map(s=>[s.studentId,s.name,s.grade,s.batchIds.map(batchName).join('; '),s.status])]),'text/csv;charset=utf-8');};
 
 boot();

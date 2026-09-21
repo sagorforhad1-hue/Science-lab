@@ -1,12 +1,13 @@
 import {createClient} from '@supabase/supabase-js';
+const safeError=(message,fallback='The server could not complete this request. Please retry.')=>typeof message==='string'&&message.length<=500&&!/<\/?[a-z][^>]*>|&lt;\/?[a-z]|SQLSTATE|stack trace/i.test(message)?message:fallback;
 let clientPromise;
 let viewTeacherId=null;
 export async function viewTeacher(id){await flush();const previous=viewTeacherId;viewTeacherId=id;try{return await request('session');}catch(error){viewTeacherId=previous;throw error;}}
 let real=false,baseline=null,queued=null,draining=null,epoch=0,dirty=false;
 export const isReal=()=>real;
 export function client(){return clientPromise??=(async()=>{
- const response=await fetch('/api/app?action=config',{cache:'no-store'});const config=await response.json();
- if(!response.ok)throw Error(config.error||'Unable to load login configuration.');
+ const response=await fetch('/api/app?action=config',{cache:'no-store'});let config;try{config=await response.json();}catch{throw Error('Unable to load login configuration. Please retry.');}
+ if(!response.ok)throw Error(safeError(config.error,'Unable to load login configuration.'));
  const supabase=createClient(config.url,config.key,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'science-lab-auth'}});
  supabase.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){sessionStorage.setItem('sl-password-recovery','1');window.dispatchEvent(new Event('sl-password-recovery'));}
@@ -17,11 +18,12 @@ export async function request(action,body){
  const auth=await client();const {data:{session}}=await auth.auth.getSession();
  if(!session)throw Error('Please log in again.');
  const response=await fetch('/api/app?action='+action,{method:body===undefined?'GET':'POST',cache:'no-store',headers:{Authorization:'Bearer '+session.access_token,...(viewTeacherId?{'X-View-Teacher':viewTeacherId}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
- const result=await response.json();if(!response.ok)throw Error(result.error||'Request failed.');return result;
+ let result;try{result=await response.json();}catch{throw Error('The server returned an unreadable response. Please retry.');}
+ if(!response.ok)throw Error(safeError(result.error));return result;
 }
-export async function restore(){const auth=await client();const {data:{session},error}=await auth.auth.getSession();if(error)throw error;return session?await request('session'):null;}
-export async function login(email,password){const auth=await client();const {error}=await auth.auth.signInWithPassword({email,password});if(error)throw Error(error.message);try{return await request('session');}catch(e){await auth.auth.signOut({scope:'local'});throw e;}}
-export async function forgot(email){const auth=await client();const {error}=await auth.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/?reset=1'});if(error)throw Error(error.message);}
+export async function restore(){const auth=await client();const {data:{session},error}=await auth.auth.getSession();if(error)throw Error(safeError(error.message));return session?await request('session'):null;}
+export async function login(email,password){const auth=await client();const {error}=await auth.auth.signInWithPassword({email,password});if(error)throw Error(safeError(error.message));try{return await request('session');}catch(e){await auth.auth.signOut({scope:'local'});throw e;}}
+export async function forgot(email){const auth=await client();const {error}=await auth.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/?reset=1'});if(error)throw Error(safeError(error.message));}
 export async function password(password,current){const auth=await client();const {data:{session}}=await auth.auth.getSession();const email=session?.user?.email;if(!email)throw Error('Please log in again.');await request('password',{password,current});const {error}=await auth.auth.signInWithPassword({email,password});if(error)throw Error('Password saved. Please log in with your new password.');sessionStorage.removeItem('sl-password-recovery');history.replaceState(null,'',location.pathname);return await request('session');}
 export async function logout(){await flush();reset();try{const auth=await client();await auth.auth.signOut({scope:'local'});}catch{}sessionStorage.removeItem('sl-password-recovery');}
 export function reset(){viewTeacherId=null;real=false;baseline=null;queued=null;epoch++;dirty=false;}
@@ -52,7 +54,7 @@ export const busy=()=>dirty;
 export async function refresh(){await flush();const result=await request('session');if(result.db)baseline=structuredClone(result.db);return result;}
 export async function upload(file,id){
  const auth=await client();const signed=await request('upload',{id,name:file.name,type:file.type,size:file.size});
- const {error}=await auth.storage.from('science-lab-private').uploadToSignedUrl(signed.path,signed.token,file,{contentType:file.type,upsert:false});if(error)throw error;
+ const {error}=await auth.storage.from('science-lab-private').uploadToSignedUrl(signed.path,signed.token,file,{contentType:file.type,upsert:false});if(error)throw Error(safeError(error.message,'File upload failed. Please retry.'));
 }
 export async function file(id){const info=await request('file',{id});const response=await fetch(info.url);if(!response.ok)throw Error('Unable to download this file.');return new File([await response.blob()],info.name,{type:info.type});}
 export async function allFiles(db){const ids=new Set(Object.values(db).filter(Array.isArray).flat().flatMap(r=>[...(r.files||[]),...(r.feedbackFiles||[])].map(f=>f.id)));return await Promise.all([...ids].map(async id=>({id,file:await file(id)})));}

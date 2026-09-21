@@ -13,5 +13,7 @@ await fs.writeFile('dist/app.js',"import * as cloud from './cloud.js';\nimport {
 await buildClient('src/cloud.js','dist/cloud.js');
 await buildClient('src/push.js','dist/push.js');
 await buildClient('src/ask-me-model.js','dist/ask-me-model.js');
-await fs.writeFile('dist/app.js',(await fs.readFile('dist/app.js','utf8')).replace(/\nboot\(\);\s*$/,'')+'\n'+await fs.readFile('src/ask-me.js','utf8')+'\nboot();\n');
+await buildClient('src/ai-pdf.js','dist/ai-pdf.js');
+await fs.copyFile(fileURLToPath(new URL('./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',import.meta.url)),'dist/ai-pdf-worker.js');
+await fs.writeFile('dist/app.js',(await fs.readFile('dist/app.js','utf8')).replace(/\nboot\(\);\s*$/,'')+'\n'+await fs.readFile('src/ask-me.js','utf8')+'\n'+await fs.readFile('src/ai-attachments.js','utf8')+'\n'+await fs.readFile('src/usability.js','utf8')+'\nboot();\n');
 console.log('Built Science Lab local app.');

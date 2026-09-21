@@ -71,7 +71,11 @@ const upgradesAction=featureAction;
 featureAction=async function(action){
  const [a,b]=action.split(':');
  if(a==='impersonate'&&!session.demo){try{await acceptCloud(await cloud.viewTeacher(b));}catch(err){await cloud.viewTeacher(null);toast(err.message,true);}return;}
- if(a==='return-admin'&&!session.demo){await acceptCloud(await cloud.viewTeacher(null));return;}
+ if(a==='return-admin'&&session?.impersonating){
+  try{if(session.demo){closeModal();setSession({role:'admin',id:'admin',teacherId:null,demo:true});}else await acceptCloud(await cloud.viewTeacher(null));}
+  catch(err){toast(bilingual('Could not exit preview. Try Exit view again. ','Preview থেকে বের হওয়া যায়নি। আবার ফিরে যাও চাপো। ')+err.message,true);}
+  return;
+ }
  if(a==='service-refresh'&&isAdmin()&&!session.demo){try{toast(bilingual('Checking providers…','Provider যাচাই চলছে…'));const r=await cloud.request('provider-check',{});await loadConnections();modal(bilingual('Live provider checks','লাইভ provider পরীক্ষা'),Object.entries(r).map(([key,value])=>'<div class="switch-row"><b>'+esc(key)+'</b><span>'+esc(value)+'</span></div>').join(''),btn('Close','close'));}catch(err){toast(err.message,true);}return;}
  if(a==='identity'){editIdentity(b);return;}
  if(a==='usage-limit'){limitForm(b);return;}
@@ -84,7 +88,7 @@ document.addEventListener('submit',ev=>{if(session?.impersonating){ev.preventDef
 document.addEventListener('click',ev=>{
  if(!session?.impersonating)return;const el=ev.target.closest('[data-action]');if(!el)return;
  const a=el.dataset.action.split(':')[0];
- if(!['return-admin','close','go','search','notifications','menu','profile','detail','assignment','exam','file','att-history','combined-report','batch-tab','pulse-result','attendance-detail','activity-detail','schedule-detail'].includes(a)){ev.preventDefault();ev.stopImmediatePropagation();toast(bilingual('Read-only preview. Exit to edit.','শুধু দেখার মোড। সম্পাদনা করতে বের হও।'),true);}
+ if(!['edit-viewed-teacher','back','return-admin','close','go','search','notifications','menu','profile','detail','assignment','exam','file','att-history','combined-report','batch-tab','pulse-result','attendance-detail','activity-detail','schedule-detail'].includes(a)){ev.preventDefault();ev.stopImmediatePropagation();toast(bilingual('Read-only preview. Exit to edit.','শুধু দেখার মোড। সম্পাদনা করতে বের হও।'),true);}
 },true);
 const upgradesNotifications=notificationsModal;
 notificationsModal=function(){upgradesNotifications();const el=$('.modal-body');if(el&&usageLoaded&&usageOwner===session?.id){el.insertAdjacentHTML('afterbegin',usageAccounts.filter(r=>r.alert).map(r=>'<p class="hint warning">'+esc(r.name)+' · '+num(r.alert)+'% '+bilingual('AI request limit reached','AI request সীমায় পৌঁছেছে')+'</p>').join(''));}};

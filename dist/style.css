@@ -144,3 +144,45 @@ button.lab-art{border:0;background:transparent;padding:0;color:var(--accent);bor
 .ask-me-credit{pointer-events:auto;font-size:9px;color:var(--muted);background:var(--panel);padding:2px 6px;border-radius:4px;margin:0 0 4px;text-decoration:none}
 .ask-me-character[aria-busy="true"]{position:relative}
 .ask-me-character[aria-busy="true"]::after{content:"Loading 3D…";position:absolute;bottom:12px;right:24px;font-size:11px;background:var(--panel);border-radius:6px;padding:6px}
+
+.ask-me-motion{display:flex;gap:5px;pointer-events:auto;margin:3px 0 6px}.ask-me-motion button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:5px 9px;font-size:11px}.ask-me-motion button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+
+/* Conversations keep the composer visible; only the message history scrolls. */
+dialog.agent-dialog{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 80px #0008;width:min(620px,calc(100vw - 24px));height:min(780px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);overflow:hidden;padding:0}
+dialog.agent-dialog[open]{display:flex;flex-direction:column}
+dialog.agent-dialog::backdrop{background:#050c19b3;backdrop-filter:blur(9px)}
+.agent-dialog .modal-header{padding:16px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;gap:12px}
+.agent-dialog .modal-header h2{font-size:18px;margin:0;text-shadow:none}
+.agent-dialog .modal-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;max-width:none;padding:12px 18px;gap:10px}
+.agent-dialog .agent-stage{min-height:0;height:76px;flex-shrink:0;margin:0;align-items:center;gap:12px;overflow:hidden}
+.agent-dialog .agent-stage img{width:66px;height:76px;animation:none;filter:none;flex-shrink:0}
+.agent-dialog .agent-stage div{background:transparent;border:0;padding:0;max-width:none;backdrop-filter:none}
+.agent-dialog .agent-stage small{display:none}
+.agent-dialog .agent-inbox{flex:1;min-height:70px;max-height:none;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:8px;border-radius:12px;background:var(--bg)}
+.agent-dialog .agent-bubble,.ask-me-bubble{flex-shrink:0;overflow-wrap:anywhere;font-size:13px}
+.agent-dialog #ai-form{flex-shrink:0;display:flex;flex-direction:column;gap:7px;background:var(--panel);border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0 0;backdrop-filter:none}
+.agent-dialog #ai-form .hint{display:none}
+.agent-dialog #ai-form .field{margin:0}
+.agent-dialog #ai-form textarea{height:66px;min-height:50px;max-height:100px;resize:vertical;font-size:16px}
+.agent-dialog #ai-form>[type=submit]{align-self:flex-end}
+.agent-dialog #ai-result{flex-shrink:0;max-height:45px;font-size:12px;padding:5px;margin:0;background:transparent;border:0;backdrop-filter:none}
+.agent-dialog #ai-result:empty{display:none}
+.agent-dialog .modal-actions{flex-shrink:0;padding:8px 18px;border-top:1px solid var(--line);display:flex;gap:8px}
+.ai-attachments{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;max-width:100%;font-size:11px;min-width:0}
+.ai-attachments small{display:block;width:100%;color:var(--muted);font-size:10px;line-height:1.4}
+.ai-file-label{display:flex;gap:6px;align-items:center;color:var(--text);max-width:100%;font-size:11px}
+.ai-file-label input{max-width:180px;min-width:0;font-size:11px}
+.ai-file-list{display:flex;gap:4px;flex-wrap:wrap;max-height:55px;overflow:auto}
+.ai-file-chip{display:flex;align-items:center;gap:5px;padding:2px 5px;border:1px solid var(--line);border-radius:5px;max-width:190px}
+.ai-file-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-file-chip button{background:transparent;color:var(--text);border:0;font-size:18px}
+.ask-me-backdrop{position:fixed;inset:0;z-index:44;background:#050c1980;backdrop-filter:blur(8px)}
+.ask-me-panel{bottom:12px;max-height:calc(100dvh - 24px);width:min(380px,calc(100vw - 24px))}
+.ask-me-chat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;height:390px;max-height:calc(100dvh - 290px);min-height:220px;overflow:hidden;text-shadow:none;box-shadow:0 12px 50px #0005}
+.ask-me-chat header,.ask-me-status{flex-shrink:0}
+.ask-me-messages{flex:1;max-height:none;min-height:35px}
+.ask-me-chat form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end}
+.ask-me-chat textarea{resize:none;height:60px;font-size:16px}
+@media(max-width:600px){.agent-dialog .modal-header{padding:12px}.agent-dialog .modal-body{padding:10px}.agent-dialog .agent-stage{height:54px}.agent-dialog .agent-stage img{height:54px;width:48px}.agent-dialog #ai-form{padding:8px 0 0}.agent-dialog .modal-actions{padding:8px 12px}.ask-me-panel{bottom:10px}.ask-me-chat{max-height:calc(100dvh - 235px)}}
+@media(max-height:550px){.agent-dialog .agent-stage{display:none}.agent-dialog .agent-inbox{min-height:30px}.ai-attachments small{display:none}.ask-me-character,.ask-me-credit,.ask-me-motion{display:none}.ask-me-chat{height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);min-height:0}}
+@media print{.ask-me-backdrop{display:none!important}}

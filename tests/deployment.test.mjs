@@ -16,7 +16,7 @@ test('clean deployment builds all static assets without a pre-existing dist or s
   await fs.writeFile(path.join(dir, '.env.local'), 'GROQ_API_KEY=not-a-real-key-test-sentinel');
   execFileSync(process.execPath, [fileURLToPath(new URL('build.mjs', root))], {cwd:dir});
   const files = (await fs.readdir(path.join(dir, 'dist'), {withFileTypes:true})).filter(entry=>entry.isFile()).map(entry=>entry.name);
-  assert.deepEqual(files.sort(), ['app.js','ask-me-model.js','cloud.js','push.js','firebase-messaging-sw.js','data.js','favicon.svg','i18n.js','index.html','integrations.js','storage.js','style.css','zip.js'].sort());
+  assert.deepEqual(files.sort(), ['app.js','ask-me-model.js','ai-pdf.js','ai-pdf-worker.js','cloud.js','push.js','firebase-messaging-sw.js','data.js','favicon.svg','i18n.js','index.html','integrations.js','storage.js','style.css','zip.js'].sort());
   const agentFiles = await fs.readdir(path.join(dir, 'dist', 'agents'));
   assert.deepEqual(agentFiles.sort(), ['app-doctor.png','ask-me.png','communication.png','help.png','student.png'].sort());
   for (const file of files) {

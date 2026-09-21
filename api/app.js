@@ -1,4 +1,6 @@
 import {integrationActions,integrationAction} from '../lib/integration-actions.js';
+import {saveProfile} from '../lib/profile-save.js';
+import {checked} from '../lib/api-errors.js';
 import {createClient} from '@supabase/supabase-js';
 import {randomBytes} from 'node:crypto';
 import {assertViewAction} from '../lib/usage.js';
@@ -15,7 +17,7 @@ function settings(){
  requireThat(!key.startsWith('sb_secret_')&&role!=='service_role','A private Supabase key was placed in the public-key setting. Fix server configuration.',503);
  return {url,key,secret};
 }
-const check=result=>{if(result.error){if(['42P01','PGRST205'].includes(result.error.code))throw new AppError(503,'Database setup is required. Run supabase/setup.sql first.');throw new AppError(400,result.error.message);}return result.data;};
+const check=checked;
 function clients(){const {url,key,secret}=settings();requireThat(secret,'SUPABASE_SERVICE_ROLE_KEY is missing on the server.',503);return {admin:createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}}),url,key};}
 async function context(req){
  const {admin,url,key}=clients(),token=(req.headers.authorization||'').replace(/^Bearer /,'');
@@ -63,6 +65,7 @@ async function updateProfile(c,op){
  requireThat(after,'Archive or suspend accounts instead of deleting them.',400);
  requireThat(same(profileRecord(target),before),'Account changed. Refresh and try again.',409);
  requireThat(after.id===id&&after.email===target.email,'Login email cannot be edited here.',400);
+ requireThat(typeof after.name==='string'&&after.name.trim().length>=2&&after.name.length<=100,'Name must be 2–100 characters.',400);
  if(c.p.role==='teacher'&&target.role==='student')requireThat(c.p.data.features?.students!==false,'Student management is disabled.');
  const permitted=c.p.role==='admin'&&target.role==='teacher'||c.p.role==='teacher'&&target.role==='student'&&target.teacher_id===c.p.id;
  const self=c.p.id===target.id;
@@ -84,7 +87,7 @@ async function updateProfile(c,op){
  if(target.role==='teacher')for(const k of ['studentLimit','batchLimit','storageLimit'])requireThat(Number.isFinite(after[k])&&after[k]>=0,'Invalid account limit.',400);
  const data=structuredClone(after);delete data.id;delete data.email;delete data.teacherId;
  const isActive=!['Suspended','Archived'].includes(data.status);
- const changed=check(await c.admin.from('sl_profiles').update({data,active:isActive}).eq('id',id).eq('data',JSON.stringify(target.data)).select('id'));
+ const changed=check(await saveProfile(c.admin,target,data,isActive));
  requireThat(changed.length===1,'Account changed. Refresh and try again.',409);
  Object.assign(target,{data,active:isActive});if(self)Object.assign(c.p,target);
 }
@@ -149,7 +152,7 @@ export default async function handler(req,res){
    requireThat(typeof body.name==='string'&&body.name.length<=200&&Number.isInteger(body.size)&&body.size>0&&body.size<=10485760,'File maximum is 10 MB.',400);
    const ext=body.name.split('.').pop().toLowerCase();requireThat('pdf,jpg,jpeg,png,webp,doc,docx,ppt,pptx,mp3,mp4,wav,webm,ogg,m4a'.split(',').includes(ext),'Unsupported file type.',400);
    const used=check(await c.admin.from('sl_files').select('size').eq('tenant_id',c.owner));
-   const max=(c.p.role==='admin'?100:c.profiles.find(p=>p.id===c.owner).data.storageLimit||100)*1048576;
+   const max=(c.p.role==='admin'?100:(c.profiles.find(p=>p.id===c.owner).data.storageLimit??100))*1048576;
    requireThat(used.reduce((n,f)=>n+f.size,0)+body.size<=max,'Storage quota reached.',400);
    const path=c.owner+'/'+body.id;
    const metadata={id:body.id,owner_id:c.p.id,tenant_id:c.owner,path,name:body.name,mime:typeof body.type==='string'?body.type:'application/octet-stream',size:body.size};

@@ -13,7 +13,7 @@ export function mountCharacter(host,reduced=false){
  scene.add(new T.HemisphereLight(0xffffff,0xb1b5c9,2));
  const light=new T.DirectionalLight(0xffffff,2.2);light.position.set(-2,4,5);scene.add(light);
  let vrm,disposed=false,frame,state='idle',elapsed=0,last=performance.now(),pointerX=0,pointerY=0;
- let blinkAt=2.5,blinkStart=-10,greetUntil=3.5;
+ let blinkAt=2.5,blinkStart=-10,greetUntil=3.5,manualMotion=null,motionStart=0;
  const greet=()=>{greetUntil=elapsed+3.5;};
  host.addEventListener('pointerdown',greet);
  const bones={},rest={},target=new T.Quaternion(),euler=new T.Euler();
@@ -34,7 +34,7 @@ export function mountCharacter(host,reduced=false){
   pose('leftUpperArm',0,0,-1.28,1);pose('rightUpperArm',0,0,1.28,1);
   vrm.update(0);scene.updateMatrixWorld(true);
   const bounds=new T.Box3().setFromObject(vrm.scene),size=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
-  camera.position.set(center.x,center.y,size.y*2.05);camera.lookAt(center);
+  camera.position.set(center.x,center.y,size.y*2.4);camera.lookAt(center);
   host.setAttribute('data-model-ready','true');
  });
  function pose(name,x,y,z,blend){
@@ -46,8 +46,10 @@ export function mountCharacter(host,reduced=false){
   if(document.hidden||!vrm)return;
   elapsed+=dt;const t=elapsed,k=1-Math.exp(-dt*6),motion=reduced?0:1;
   const think=state==='thinking',talk=state==='replying',wave=!reduced&&!think&&!talk&&t<greetUntil;
+  const action=reduced?'idle':manualMotion||(state==='idle'&&t%18>4&&t%18<10?'walk':'idle');
+  const walk=action==='walk',dance=action==='dance',phase=(t-motionStart)*(walk?5:6);
   const idleGesture=!think&&!talk&&!wave&&t%16>10;
-  host.dataset.motionState=wave?'greeting':state;
+  host.dataset.motionState=walk||dance?action:wave?'greeting':state;
   const sway=Math.sin(t*.7)*.07*motion,breath=Math.sin(t*1.8)*.025*motion;
   // Counter-rotation keeps balance: hips, ribcage and head don't move as a rigid block.
   pose('hips',0,Math.sin(t*.55)*.09*motion,sway,k);
@@ -72,18 +74,34 @@ export function mountCharacter(host,reduced=false){
    for(const part of ['Proximal','Intermediate','Distal'])
     pose(side+finger+part,0,0,(side==='left'?-1:1)*(wave||talk?.06:.25),k);
   }
-  if(bones.hips)bones.hips.position.copy(rest.hips);
+  if(bones.hips){
+   const base=rest.hips,rise=dance?.035*(1-Math.cos(phase*2)):walk?.018*(1-Math.cos(phase*2)):0;
+   bones.hips.position.lerp(new T.Vector3(base.x+(dance?Math.sin(phase)*.065:0),base.y+rise,base.z),k);
+  }
+  if(walk||dance){
+   for(const [side,step] of [['left',Math.sin(phase)],['right',Math.sin(phase+Math.PI)]]){
+    pose(side+'UpperLeg',step*(walk?.48:.28),0,dance?step*.12:0,k);
+    pose(side+'LowerLeg',Math.max(0,-step)*(walk?.85:.55)+.08,0,0,k);
+    pose(side+'Foot',-Math.max(0,-step)*.4,0,0,k);
+    pose(side+'UpperArm',-step*(walk?.55:.45),0,(side==='left'?-1:1)*(dance?.7+Math.cos(phase)*.3:1.2),k);
+    pose(side+'LowerArm',dance?-.85:-.35,0,(side==='left'?1:-1)*(dance?.3:0),k);
+   }
+   pose('hips',0,Math.sin(phase)*(dance?.25:.06),dance?Math.sin(phase)*.12:0,k);
+   pose('spine',dance?.08:0,Math.sin(phase)*-.08,0,k);
+   pose('head',dance?Math.sin(phase*2)*.12:Math.sin(phase)*.035,0,0,k);
+   vrm.scene.position.x=T.MathUtils.damp(vrm.scene.position.x,walk?Math.sin((t-motionStart)*.8)*.09:0,6,dt);
+  }else vrm.scene.position.x=T.MathUtils.damp(vrm.scene.position.x,0,6,dt);
   if(!reduced&&t>=blinkAt){blinkStart=t;blinkAt=t+3+Math.random()*3;}
   const blink=Math.max(0,1-Math.abs((t-blinkStart-.09)/.09));
   vrm.expressionManager.setValue('blink',blink);
-  vrm.expressionManager.setValue('happy',think?.02:wave?.65:talk?.45:.2);
+  vrm.expressionManager.setValue('happy',dance?.75:think?.02:wave?.65:talk?.45:.2);
   vrm.expressionManager.setValue('relaxed',think?.22:.08);
   // Text replies have a smile and gestures; no pretend audio/lip-sync.
   vrm.expressionManager.setValue('aa',wave?.12:talk?.08:0);
   vrm.update(dt);renderer.render(scene,camera);
  }
  frame=requestAnimationFrame(animate);
- return {ready,setState(next){state=next;},dispose(){
+ return {ready,setMotion(next){manualMotion=next;motionStart=elapsed;greetUntil=0;},setState(next){state=next;if(next==='thinking')manualMotion=null;},dispose(){
   if(disposed)return;disposed=true;cancelAnimationFrame(frame);
   host.removeEventListener('pointerdown',greet);
   host.removeEventListener('pointermove',pointer);host.removeEventListener('pointerleave',leave);

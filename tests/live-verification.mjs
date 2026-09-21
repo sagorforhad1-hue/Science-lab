@@ -32,8 +32,16 @@ try{
  let tt=await login(teacher);const first=await ok(tt,'session');assert.equal(first.profile.mustChangePassword,true);
  const teacherPassword='Test!'+randomUUID();await ok(tt,'password',{password:teacherPassword});tt=await login({email:teacher.email,password:teacherPassword});report.teacherCreation='Created, password login and required first-password change passed';
  let td=await ok(tt,'session');const before=td.db.teachers.find(p=>p.id===teacher.id);
- const photo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l6sAAAAASUVORK5CYII=';
+ const photo='data:image/png;base64,'+Buffer.concat([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l6sAAAAASUVORK5CYII=','base64'),Buffer.alloc(80000)]).toString('base64');
  await ok(tt,'mutate',{ops:[{entity:'teachers',id:teacher.id,before,after:{...before,bio:'Verification biography',subject:'Physics',photoData:photo,leaderboard:true}}]});
+ const saved=(await ok(token,'session')).db.teachers.find(p=>p.id===teacher.id);
+ const off={...saved,name:'Renamed verification teacher',features:{...saved.features,ai_agent_help:false,ai_quiz:false}};
+ await ok(token,'mutate',{ops:[{entity:'teachers',id:teacher.id,before:saved,after:off}]});
+ const renamed=(await ok(tt,'session')).db.teachers.find(p=>p.id===teacher.id);assert.equal(renamed.name,off.name);assert.equal(renamed.features.ai_quiz,false);
+ assert.equal((await api(tt,'ai-run',{tool:'quiz',prompt:'Make a quiz'})).status,403);
+ assert.equal((await api(tt,'ai-run',{tool:'agent-help',prompt:'Help me'})).status,403);
+ assert.equal((await api(tt,'mutate',{ops:[{entity:'teachers',id:teacher.id,before:saved,after:saved}]})).status,409);
+ report.largeProfileAndToggles='106 KB profile image saved; admin rename persisted; disabled quiz and agent denied; stale edit rejected';
  const batch={id:randomUUID(),teacherId:teacher.id,name:'Verification batch',subject:'Physics',status:'Active',capacity:3,fee:0};
  await ok(tt,'mutate',{ops:[{entity:'batches',id:batch.id,before:null,after:batch}]});
  const student=await ok(tt,'account',{role:'student',record:{name:'Verification student',email:'science-lab-student-'+marker+'@example.com',studentId:'CHECK-'+marker,grade:'10',guardian:'Verification guardian',guardianPhone:'01700000000',batchIds:[batch.id]}});created.push(student.id);

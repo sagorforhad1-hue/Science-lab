@@ -85,4 +85,13 @@ end $$;
 revoke all on function public.sl_register_account(uuid,uuid,text,text,jsonb) from public,anon,authenticated;
 grant execute on function public.sl_register_account(uuid,uuid,text,text,jsonb) to service_role;
 
+-- Large JSON comparisons use POST parameters, avoiding oversized request URLs.
+create or replace function public.sl_update_profile(
+ profile_id uuid, expected_data jsonb, replacement_data jsonb, replacement_active boolean
+) returns table(id uuid) language sql security invoker set search_path='' as $$
+ update public.sl_profiles p set data=replacement_data,active=replacement_active
+ where p.id=profile_id and p.data=expected_data returning p.id;
+$$;
+revoke all on function public.sl_update_profile(uuid,jsonb,jsonb,boolean) from public,anon,authenticated;
+grant execute on function public.sl_update_profile(uuid,jsonb,jsonb,boolean) to service_role;
 commit;
