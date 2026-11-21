@@ -1,4 +1,4 @@
-export const KEY='science-lab-v1';
+export const KEY='science-lab-showroom-v1';
 export const today=()=>new Date().toLocaleDateString('en-CA');
 export const month=()=>today().slice(0,7);
 export const uid=()=>globalThis.crypto.randomUUID();

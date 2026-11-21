@@ -17,7 +17,7 @@ async function openAskMe(){
   ev.preventDefault();const input=form.querySelector('textarea'),button=form.querySelector('button'),prompt=input.value.trim();if(!prompt||button.disabled)return;
   clearTimeout(replyTimer);bubble(prompt,true);input.value='';button.disabled=true;model?.setState('thinking');status.textContent=bilingual('Thinking…','ভাবছি…');
   try{
-   const files=await attachments.prepare();let text;if(session.demo)text=bilingual('Demo mode: sign in to your real account for an AI reply.','ডেমো মোড: AI-এর উত্তর পেতে আসল অ্যাকাউন্টে লগইন করো।');
+   const files=await attachments.prepare();let text;if(session.demo)text=showroomReport('support',prompt);
    else{await cloud.flush();const result=await cloud.request('ai-run',{tool:isAdmin()?'support':'tutor',language:db.settings.language,attachments:files,prompt:('Conversation so far:\n'+messages.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt).slice(-12000)});text=result.text;}
    if(!closed)attachments.clear();
    if(closed)return;messages.push({role:'user',text:prompt},{role:'assistant',text});bubble(text);model?.setState('replying');status.textContent=bilingual('Reply ready','উত্তর এসেছে');replyTimer=setTimeout(()=>model?.setState('idle'),3500);

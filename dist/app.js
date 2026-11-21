@@ -1,4 +1,6 @@
 import * as cloud from './cloud.js';
+import {seed as seedDemo} from './data.js';
+import {demoReport} from './demo-reports.js';
 import {putFile,getFile,getAllFiles,clearFiles,passwordHash} from './storage.js';
 import {load,persist,uid,today,month,grade,outstanding,attendanceRate,escapeHTML as esc,csv} from './data.js';
 import {translate} from './i18n.js';
@@ -384,7 +386,7 @@ renderFeaturePage=function(){if(page==='connections')return connectionsPage();if
 aiPage=function(){
  const tools=isAdmin()?Object.keys(aiLabels):isStudent()?['tutor']:['quiz','grading','insights','guardian','tutor'];
  return heading('AI Studio',bilingual('Choose an assistant. Review its draft before use.','সহকারী বেছে নাও। ব্যবহারের আগে ফলাফল যাচাই করো।'),(isAdmin()?btn('API connections','go:connections','','settings'):''))+
- '<div class="hint">'+(session.demo?bilingual('Demo uses sample previews. Log in to a real account to use the connected AI.','ডেমোতে নমুনা preview দেখাবে। আসল AI ব্যবহার করতে নিজের অ্যাকাউন্টে লগইন করো।'):bilingual('AI creates drafts; it never changes marks, permissions or sends messages automatically. Only aggregate records are included automatically.','AI খসড়া তৈরি করে; নিজে নম্বর, অনুমতি বদলায় না বা মেসেজ পাঠায় না। স্বয়ংক্রিয়ভাবে শুধু সারসংক্ষেপ তথ্য যুক্ত হয়।'))+'</div><div class="cards">'+tools.filter(k=>isAdmin()||teacher()?.features?.['ai_'+k]!==false).map(k=>'<article class="card"><span class="subject-symbol">'+icon('ai')+'</span><h3>'+esc(toolLabel(k))+'</h3><p>'+esc(bilingual('Add your instructions and generate a draft.','তোমার নির্দেশনা দিয়ে খসড়া তৈরি করো।'))+'</p>'+btn(bilingual('Open assistant','সহকারী খোলো'),'connected-ai:'+k,'primary small')+'</article>').join('')+'</div>'+
+ '<div class="hint">'+(session.demo?bilingual('Offline demo: reports use your sample attendance and results. No API needed.','অফলাইন ডেমো: তোমার নমুনা হাজিরা ও ফল থেকে রিপোর্ট তৈরি হয়। API লাগে না।'):bilingual('AI creates drafts; it never changes marks, permissions or sends messages automatically. Only aggregate records are included automatically.','AI খসড়া তৈরি করে; নিজে নম্বর, অনুমতি বদলায় না বা মেসেজ পাঠায় না। স্বয়ংক্রিয়ভাবে শুধু সারসংক্ষেপ তথ্য যুক্ত হয়।'))+'</div><div class="cards">'+tools.filter(k=>isAdmin()||teacher()?.features?.['ai_'+k]!==false).map(k=>'<article class="card"><span class="subject-symbol">'+icon('ai')+'</span><h3>'+esc(toolLabel(k))+'</h3><p>'+esc(bilingual('Add your instructions and generate a draft.','তোমার নির্দেশনা দিয়ে খসড়া তৈরি করো।'))+'</p>'+btn(bilingual('Open assistant','সহকারী খোলো'),'connected-ai:'+k,'primary small')+'</article>').join('')+'</div>'+
  '<section class="agent-directory"><div class="section-heading"><div><h2>'+bilingual('Character agents','ক্যারেক্টার agent')+'</h2><p class="subtitle">'+bilingual('Each assistant has a clear role and account permission. Review drafts before taking action.','প্রতিটি assistant-এর role ও account permission আলাদা। কোনো action নেওয়ার আগে draft যাচাই করো।')+'</p></div></div><div class="cards">'+visibleAgentProfiles().map(([k,p])=>'<article class="card agent-card"><div class="agent-thumb"><img src="'+p.image+'" alt="'+esc(bilingual(...p.name))+' character"><span>'+esc(p.asset)+'</span></div><h3>'+esc(bilingual(...p.name))+'</h3><p>'+esc(bilingual(...p.role))+'</p>'+btn(bilingual('Open agent','agent খোলো'),'connected-ai:agent-'+k,'primary small')+'</article>').join('')+'</div></section>';
 };
 async function openAssistant(tool){
@@ -405,7 +407,7 @@ async function openAssistant(tool){
   if(profile)agentBubble(prompt,true);
   try{
    const files=await attachments.prepare();let result;
-   if(session.demo){result={text:bilingual('DEMO SAMPLE — This is not an AI response.\n\n1. Define the learning objective.\n2. Review the supplied work and evidence.\n3. Write feedback and next steps.\n\nLog in to a real account to generate your requested draft.','ডেমো নমুনা—এটি AI-এর উত্তর নয়।\n\n১. শেখার লক্ষ্য ঠিক করো।\n২. উত্তর ও প্রমাণ যাচাই করো।\n৩. মতামত ও পরের ধাপ লেখো।\n\nনিজের অ্যাকাউন্টে লগইন করলে আসল খসড়া তৈরি হবে।')};}
+   if(session.demo){result={text:showroomReport(tool,prompt)};}
    else {await cloud.flush();result=await cloud.request('ai-run',{tool,prompt:(profile?'Conversation so far:\n'+history.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt:prompt).slice(-12000),language:db.settings.language,attachments:files});}
    if(!form.isConnected)return;
    attachments.clear();
@@ -448,7 +450,7 @@ bindFeatures=function(){connectedBind();
  if(page==='connections'&&isAdmin()||page==='guardians'){
   if(isAdmin())loadConnections();
   const f=$('#service-form');if(f)f.onsubmit=async ev=>{ev.preventDefault();const button=f.querySelector('button');button.disabled=true;try{const body=Object.fromEntries(Object.keys(serviceLabels).map(k=>[k,f.elements[k].checked]));for(const k of ['dailyAiLimit','dailySendLimit'])body[k]=Number(f.elements[k].value);if(session.demo){toast(bilingual('Demo settings only','শুধু ডেমো সেটিংস'));return;}await cloud.flush();await cloud.request('service-settings',body);toast(t('Settings saved'));await loadConnections();}catch(err){toast(err.message,true);}finally{button.disabled=false;}};
-  const n=$('#notify-form');if(n)n.onsubmit=async ev=>{ev.preventDefault();const button=n.querySelector('button');button.disabled=true;try{if(session.demo)throw Error(bilingual('Log in to send real messages.','আসল মেসেজ পাঠাতে লগইন করো।'));const body={...Object.fromEntries(new FormData(n)),consent:n.elements.consent.checked,requestId:crypto.randomUUID()};if(!confirm(bilingual('Send this message to the selected recipient?','নির্বাচিত প্রাপককে মেসেজটি পাঠাবে?')))return;await cloud.flush();const r=await cloud.request('notify',body);$('#delivery-result').textContent=r.status+(r.error?' — '+r.error:'');if(isAdmin())await loadConnections();}catch(err){$('#delivery-result').textContent=err.message;}finally{button.disabled=false;}};
+  const n=$('#notify-form');if(n)n.onsubmit=async ev=>{ev.preventDefault();const button=n.querySelector('button');button.disabled=true;try{if(session.demo){$('#delivery-result').textContent=bilingual('Demo: message preview saved locally; nothing was sent.','ডেমো: মেসেজের খসড়া স্থানীয়ভাবে রাখা হয়েছে; পাঠানো হয়নি।');db.demoDeliveries||=[];db.demoDeliveries.push({...Object.fromEntries(new FormData(n)),created:new Date().toISOString(),status:'Simulated'});persist(db);return;}const body={...Object.fromEntries(new FormData(n)),consent:n.elements.consent.checked,requestId:crypto.randomUUID()};if(!confirm(bilingual('Send this message to the selected recipient?','নির্বাচিত প্রাপককে মেসেজটি পাঠাবে?')))return;await cloud.flush();const r=await cloud.request('notify',body);$('#delivery-result').textContent=r.status+(r.error?' — '+r.error:'');if(isAdmin())await loadConnections();}catch(err){$('#delivery-result').textContent=err.message;}finally{button.disabled=false;}};
  }
 };
 const connectedFeatureAction=featureAction;
@@ -695,7 +697,7 @@ async function openAskMe(){
   ev.preventDefault();const input=form.querySelector('textarea'),button=form.querySelector('button'),prompt=input.value.trim();if(!prompt||button.disabled)return;
   clearTimeout(replyTimer);bubble(prompt,true);input.value='';button.disabled=true;model?.setState('thinking');status.textContent=bilingual('Thinking…','ভাবছি…');
   try{
-   const files=await attachments.prepare();let text;if(session.demo)text=bilingual('Demo mode: sign in to your real account for an AI reply.','ডেমো মোড: AI-এর উত্তর পেতে আসল অ্যাকাউন্টে লগইন করো।');
+   const files=await attachments.prepare();let text;if(session.demo)text=showroomReport('support',prompt);
    else{await cloud.flush();const result=await cloud.request('ai-run',{tool:isAdmin()?'support':'tutor',language:db.settings.language,attachments:files,prompt:('Conversation so far:\n'+messages.slice(-6).map(m=>m.role+': '+m.text).join('\n')+'\nCurrent question: '+prompt).slice(-12000)});text=result.text;}
    if(!closed)attachments.clear();
    if(closed)return;messages.push({role:'user',text:prompt},{role:'assistant',text});bubble(text);model?.setState('replying');status.textContent=bilingual('Reply ready','উত্তর এসেছে');replyTimer=setTimeout(()=>model?.setState('idle'),3500);
@@ -753,5 +755,31 @@ render=function(){usabilityRender();if(session?.impersonating){$('.impersonation
 document.addEventListener('click',async ev=>{const target=ev.target.closest('[data-action="edit-viewed-teacher"]');if(!target||!session?.impersonating)return;ev.preventDefault();const id=session.id;await featureAction('return-admin');if(isAdmin())editIdentity(id);},true);
 const baseExportEntity=exportEntity;
 exportEntity=function(entity){if(entity!=='students')return baseExportEntity(entity);const rows=isStudent()?[me()]:filtered(own('students'));download('students-'+today()+'.csv',csv([['ID','Name','Grade','Batches','Status'],...rows.map(s=>[s.studentId,s.name,s.grade,s.batchIds.map(batchName).join('; '),s.status])]),'text/csv;charset=utf-8');};
+
+// Public showroom: only isolated browser data; never restore a cloud account.
+function showroomReport(tool,prompt=''){
+ return demoReport(db,{tool,prompt,language:db.settings.language,teacherId:isAdmin()?null:session.teacherId,studentId:isStudent()?session.id:null});
+}
+boot=async function(){
+ globalThis.scienceLabPersist=null;globalThis.scienceLabFileMode=false;
+ if(!db.showroomInitialized){for(const teacher of db.teachers)Object.assign(teacher.features,{ai:true,studentAI:true,messages:true,guardians:true,online:true});db.showroomInitialized=true;persist(db);}
+ const role=sessionStorage.getItem('sl-showroom-role')||'teacher';
+ const t=db.teachers.find(t=>t.status!=='Suspended');
+ const s=db.students.find(s=>s.status==='Active'&&s.teacherId===t?.id);
+ setSession({role:role==='student'&&s?'student':role==='admin'?'admin':'teacher',id:role==='admin'?'admin':role==='student'&&s?s.id:t?.id,teacherId:role==='admin'?null:t?.id,demo:true});
+};
+renderLogin=function(){boot();};
+const showroomRender=render;
+render=function(){showroomRender();if(!session)return;
+ sessionStorage.setItem('sl-showroom-role',session.role);
+ const banner=$('.demo-banner');if(banner)banner.innerHTML='<strong>'+bilingual('Interactive demo','ব্যবহারযোগ্য ডেমো')+'</strong> · '+bilingual('Sample records stay in your browser. Reports are simulated.','নমুনা তথ্য এই ব্রাউজারে থাকে। রিপোর্ট স্থানীয়ভাবে তৈরি।')+'<div class="demo-roles">'+btn('Teacher','demo:teacher')+btn('Student','demo:student')+btn('Super Admin','demo:admin')+btn(bilingual('How to use','ব্যবহার নির্দেশনা'),'showroom-help')+btn(bilingual('Reset demo','ডেমো রিসেট'),'showroom-reset')+'</div>';
+};
+const showroomAction=featureAction;
+featureAction=async function(action){
+ if(action==='logout'){switchWorkspace();return;}
+ if(action==='showroom-reset'){if(!confirm(bilingual('Reset all demo records in this browser?','এই ব্রাউজারের সব ডেমো তথ্য রিসেট করবে?')))return;askMeCleanup?.();db=seedDemo();persist(db);closeModal();await boot();return;}
+ if(action==='showroom-help'){modal(bilingual('Try a teaching day','একদিনের কোচিং চালিয়ে দেখো'),'<p class="detail-text">'+esc(bilingual('1. Teacher: add a student and assign a batch.\n2. Mark attendance and enter exam marks.\n3. Open AI Studio → Learning insights or Guardian summary. Reports reflect your changes.\n4. Try assignments, fees, notices and inbox.\n5. Switch to Student to see the student experience; Super Admin shows management controls.\n6. Reset demo restores the sample records. Changes are private to this browser. Email, push and WhatsApp delivery are simulated; AI replies use local templates.','১. Teacher হিসেবে শিক্ষার্থী ও ব্যাচ যোগ করো।\n২. হাজিরা ও পরীক্ষার নম্বর দাও।\n৩. AI Studio থেকে Learning insights বা Guardian summary তৈরি করো—বদলানো তথ্য রিপোর্টে আসবে।\n৪. কাজ, ফি, নোটিশ ও ইনবক্স ব্যবহার করো।\n৫. Student ও Super Admin বদলে তাদের কাজ দেখো।\n৬. Reset demo নমুনা তথ্য ফিরিয়ে আনে। তথ্য নিজের ব্রাউজারে থাকে। Email, push, WhatsApp পাঠানো ও AI উত্তর এখানে simulation।'))+'</p>',btn('Close','close'),true);return;}
+ return showroomAction(action);
+};
 
 boot();
